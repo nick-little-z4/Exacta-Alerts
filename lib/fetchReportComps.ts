@@ -68,7 +68,7 @@ export async function fetchReportComps(): Promise<{
         cache: 'no-store',
       }
     ),
-  ])
+  ]) 
 
   if (!tableauRes.ok) throw new Error(`Tableau returned ${tableauRes.status}: ${await tableauRes.text()}`)
 
