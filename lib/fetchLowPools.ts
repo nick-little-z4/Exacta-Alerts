@@ -38,16 +38,16 @@ export interface LowPoolsData {
 export async function fetchLowPools(): Promise<LowPoolsData> {
   const [poolsRes, acknowledgedRes] = await Promise.all([
     fetch(
-      `${process.env.AWS_API_GATEWAY_BASE_URL}/low-pools`,
+      `${process.env.EXACTA_API_BASE_URL}/low-pools`,
       {
-        headers: { 'x-api-key': process.env.AWS_API_KEY! },
+        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
         cache: 'no-store',
       }
     ),
     fetch(
-      `${process.env.AWS_API_GATEWAY_BASE_URL}/low-pools/acknowledged`,
+      `${process.env.EXACTA_API_BASE_URL}/low-pools/acknowledged`,
       {
-        headers: { 'x-api-key': process.env.AWS_API_KEY! },
+        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
         cache: 'no-store',
       }
     ),

@@ -18,9 +18,9 @@ export interface ManualHandicappingWinsData {
 
 export async function fetchManualHandicappingWins(): Promise<ManualHandicappingWinsData> {
   const res = await fetch(
-    `${process.env.AWS_API_GATEWAY_BASE_URL}/manual-handicapping-wins`,
+    `${process.env.EXACTA_API_BASE_URL}/manual-handicapping-wins`,
     {
-      headers: { 'x-api-key': process.env.AWS_API_KEY! },
+      headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
       cache: 'no-store', // always fetch latest from S3 reader
     }
   )

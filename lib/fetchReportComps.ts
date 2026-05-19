@@ -62,9 +62,9 @@ export async function fetchReportComps(): Promise<{
       { headers: { 'X-Tableau-Auth': token } }
     ),
     fetch(
-      `${process.env.AWS_API_GATEWAY_BASE_URL}/report-comps/acknowledged`,
+      `${process.env.EXACTA_API_BASE_URL}/report-comps/acknowledged`,
       {
-        headers: { 'x-api-key': process.env.AWS_API_KEY! },
+        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
         cache: 'no-store',
       }
     ),

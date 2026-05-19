@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const BASE_URL = process.env.AWS_API_GATEWAY_BASE_URL
-const API_KEY = process.env.AWS_API_KEY!
+const BASE_URL = process.env.EXACTA_API_BASE_URL
+const API_KEY = process.env.EXACTA_API_KEY!
 
 async function callLambda(method: string, body: object) {
   const res = await fetch(`${BASE_URL}/report-comps/acknowledge`, {
