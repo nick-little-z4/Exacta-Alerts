@@ -10,6 +10,7 @@ export interface PoolRow {
   last_updated?: string
   first_seen?: string
   is_new_today?: boolean
+  notes?: string
 }
 
 export interface AcknowledgedPool {

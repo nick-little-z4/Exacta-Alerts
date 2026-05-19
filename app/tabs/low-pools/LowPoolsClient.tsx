@@ -23,18 +23,128 @@ function SeverityBadge({ pct }: { pct: string }) {
   )
 }
 
+function PageInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#13152a] border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sky-400 text-lg">ℹ️</span>
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">
+              About Low Pools
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="text-sm text-slate-400 space-y-3">
+          <p className="text-slate-500 italic">Information coming soon.</p>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="text-xs px-4 py-2 rounded border border-slate-600 text-slate-400 hover:border-sky-500 hover:text-sky-400 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RowInfoModal({ row, onClose }: { row: PoolRow; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#13152a] border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sky-400 text-lg">ℹ️</span>
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">
+              Pool Details
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Row identity */}
+        <div className="mb-4 pb-4 border-b border-slate-800">
+          <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">Pool</div>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="px-2 py-1 rounded bg-slate-800 text-slate-200 font-medium">{row.site}</span>
+            <span className="px-2 py-1 rounded bg-slate-800 text-slate-300">{row.manufacturerid}</span>
+            <span className="px-2 py-1 rounded bg-slate-800 text-slate-300">{row.mathname}</span>
+            <span className="px-2 py-1 rounded bg-slate-800 text-slate-400">Denom: {row.denomination}</span>
+          </div>
+        </div>
+
+      <div className="text-sm text-slate-400 space-y-3">
+        {row.notes
+          ? <p>{row.notes}</p>
+          : <p className="text-slate-500 italic">No notes for this pool.</p>
+        }
+      </div>
+
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="text-xs px-4 py-2 rounded border border-slate-600 text-slate-400 hover:border-sky-500 hover:text-sky-400 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InfoButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title="View details"
+      className="w-5 h-5 flex items-center justify-center rounded-full border border-slate-700 text-slate-500 hover:border-sky-500 hover:text-sky-400 hover:bg-sky-950/30 transition-all text-xs font-bold"
+    >
+      i
+    </button>
+  )
+}
+
 function PoolTable({
   rows,
   emptyMsg,
   onReview,
   loadingKey,
   acknowledgedKeys,
+  onInfo,
 }: {
   rows: PoolRow[]
   emptyMsg: string
   onReview?: (row: PoolRow) => void
   loadingKey?: string | null
   acknowledgedKeys?: Set<string>
+  onInfo: (row: PoolRow) => void
 }) {
   if (rows.length === 0)
     return <p className="text-slate-500 text-sm px-4 py-6">{emptyMsg}</p>
@@ -44,7 +154,7 @@ function PoolTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-700">
-            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', ...(onReview ? [''] : [])].map((h, i) => (
+            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', '', ...(onReview ? [''] : [])].map((h, i) => (
               <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {h}
               </th>
@@ -67,23 +177,26 @@ function PoolTable({
                 <td className="px-4 py-2.5">
                   <SeverityBadge pct={row.poolpercentage} />
                 </td>
-              {onReview && (
-                <td className="px-4 py-2.5 text-right">
-                  {acknowledgedKeys?.has(rowKey(row)) ? (
-                    <span className="text-xs px-3 py-1 rounded border border-emerald-800 text-emerald-600">
-                      ✅ Acknowledged
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => onReview(row)}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1 rounded border border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? 'Saving...' : 'Acknowledge →'}
-                    </button>
-                  )}
+                <td className="px-4 py-2.5">
+                  <InfoButton onClick={() => onInfo(row)} />
                 </td>
-              )}
+                {onReview && (
+                  <td className="px-4 py-2.5 text-right">
+                    {acknowledgedKeys?.has(rowKey(row)) ? (
+                      <span className="text-xs px-3 py-1 rounded border border-emerald-800 text-emerald-600">
+                        ✅ Acknowledged
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => onReview(row)}
+                        disabled={isLoading}
+                        className="text-xs px-3 py-1 rounded border border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? 'Saving...' : 'Acknowledge →'}
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             )
           })}
@@ -98,11 +211,13 @@ function ReviewedTable({
   acknowledgedMeta,
   onUnreview,
   loadingKey,
+  onInfo,
 }: {
   rows: PoolRow[]
   acknowledgedMeta: AcknowledgedPool[]
   onUnreview: (row: PoolRow) => void
   loadingKey?: string | null
+  onInfo: (row: PoolRow) => void
 }) {
   if (rows.length === 0)
     return <p className="text-slate-500 text-sm px-4 py-6">No pools acknowledged yet.</p>
@@ -112,7 +227,7 @@ function ReviewedTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-700">
-            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', 'Acknowledged', ''].map((h, i) => (
+            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', 'Acknowledged', '', ''].map((h, i) => (
               <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {h}
               </th>
@@ -140,6 +255,9 @@ function ReviewedTable({
                   {meta?.acknowledged_at
                     ? new Date(meta.acknowledged_at).toLocaleString()
                     : '—'}
+                </td>
+                <td className="px-4 py-2.5">
+                  <InfoButton onClick={() => onInfo(row)} />
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <button
@@ -175,30 +293,32 @@ export default function LowPoolsClient({ data }: { data: LowPoolsData }) {
   )
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [showPageInfo, setShowPageInfo] = useState(false)
+  const [infoRow, setInfoRow] = useState<PoolRow | null>(null)
 
-useEffect(() => {
-  setLastRefresh(new Date()) // set initial value client-side only
-
-  const interval = setInterval(() => {
-    router.refresh()
+  useEffect(() => {
     setLastRefresh(new Date())
-  }, 5 * 60 * 1000)
 
-  return () => clearInterval(interval)
-}, [router])
+    const interval = setInterval(() => {
+      router.refresh()
+      setLastRefresh(new Date())
+    }, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [router])
 
   const activeCriticals = criticals.filter(r => !acknowledgedKeys.has(rowKey(r)))
   const reviewedRows = acknowledgedMeta.map(a => ({
-  site: a.site,
-  manufacturerid: '',
-  mathname: a.mathname,
-  denomination: a.denomination,
-  poolbalance: '0',
-  poolpercentage: '0',
-  ...criticals.find(c => rowKey(c) === rowKey(a)),
-  ...newCriticals.find(c => rowKey(c) === rowKey(a)),
-})) as PoolRow[]
+    site: a.site,
+    manufacturerid: '',
+    mathname: a.mathname,
+    denomination: a.denomination,
+    poolbalance: '0',
+    poolpercentage: '0',
+    ...criticals.find(c => rowKey(c) === rowKey(a)),
+    ...newCriticals.find(c => rowKey(c) === rowKey(a)),
+  })) as PoolRow[]
 
   const handleReview = async (row: PoolRow) => {
     const key = rowKey(row)
@@ -314,11 +434,25 @@ useEffect(() => {
 
   return (
     <>
+      {showPageInfo && <PageInfoModal onClose={() => setShowPageInfo(false)} />}
+      {infoRow && <RowInfoModal row={infoRow} onClose={() => setInfoRow(null)} />}
+
       {error && (
         <div className="mb-6 px-4 py-3 bg-rose-950 border border-rose-700 rounded-lg text-rose-300 text-sm">
           {error}
         </div>
       )}
+
+      {/* Page info button */}
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => setShowPageInfo(true)}
+          title="About this page"
+          className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-700 text-slate-500 hover:border-sky-500 hover:text-sky-400 hover:bg-sky-950/30 transition-all text-sm font-bold"
+        >
+          i
+        </button>
+      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-5 gap-4 mb-10">
@@ -349,6 +483,7 @@ useEffect(() => {
               onReview={handleReview}
               loadingKey={loadingKey}
               acknowledgedKeys={acknowledgedKeys}
+              onInfo={setInfoRow}
             />
           </div>
         )}
@@ -367,6 +502,7 @@ useEffect(() => {
             emptyMsg="No critical pools right now."
             onReview={handleReview}
             loadingKey={loadingKey}
+            onInfo={setInfoRow}
           />
         </div>
 
@@ -384,6 +520,7 @@ useEffect(() => {
             acknowledgedMeta={acknowledgedMeta}
             onUnreview={handleUnreview}
             loadingKey={loadingKey}
+            onInfo={setInfoRow}
           />
         </div>
 
@@ -396,7 +533,7 @@ useEffect(() => {
               {warnings.length} pool{warnings.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <PoolTable rows={warnings} emptyMsg="No warning pool list pools right now." />
+          <PoolTable rows={warnings} emptyMsg="No warning pool list pools right now." onInfo={setInfoRow} />
         </div>
 
         {/* New Today */}
@@ -408,7 +545,7 @@ useEffect(() => {
               {newEntries.length} pool{newEntries.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <PoolTable rows={newEntries} emptyMsg="No new pool entries today." />
+          <PoolTable rows={newEntries} emptyMsg="No new pool entries today." onInfo={setInfoRow} />
         </div>
       </div>
 
