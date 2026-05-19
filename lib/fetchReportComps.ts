@@ -31,6 +31,10 @@ function parseCSVLine(line: string): string[] {
 }
 
 async function getToken(): Promise<{ token: string; siteId: string }> {
+  console.log('[fetchReportComps] TABLEAU_HOST:', process.env.TABLEAU_HOST)
+  console.log('[fetchReportComps] TABLEAU_PAT_NAME:', process.env.TABLEAU_PAT_NAME)
+  console.log('[fetchReportComps] TABLEAU_REPORT_COMPS_VIEW_ID:', process.env.TABLEAU_REPORT_COMPS_VIEW_ID)
+  console.log('[fetchReportComps] EXACTA_API_BASE_URL:', process.env.EXACTA_API_BASE_URL)
   const res = await fetch(
     `${process.env.TABLEAU_HOST}/api/${API_VERSION}/auth/signin`,
     {
@@ -68,7 +72,7 @@ export async function fetchReportComps(): Promise<{
         cache: 'no-store',
       }
     ),
-  ]) 
+  ])
 
   if (!tableauRes.ok) throw new Error(`Tableau returned ${tableauRes.status}: ${await tableauRes.text()}`)
 
@@ -100,7 +104,6 @@ export async function fetchReportComps(): Promise<{
     })
   }
 
-  // Parse acknowledged rows
   let acknowledged: AcknowledgedReportComp[] = []
   if (acknowledgedRes.ok) {
     const ackData = await acknowledgedRes.json()
