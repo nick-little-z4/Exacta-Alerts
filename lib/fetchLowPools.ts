@@ -19,6 +19,7 @@ export interface AcknowledgedPool {
   denomination: string
   acknowledged_at?: string
   acknowledged_by?: string
+  notes?: string
 }
 
 export interface LowPoolsData {

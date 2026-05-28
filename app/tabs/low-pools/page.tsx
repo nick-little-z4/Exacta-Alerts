@@ -1,9 +1,16 @@
 import Link from 'next/link'
 import { fetchLowPools } from '@/lib/fetchLowPools'
+import { fetchRoulettePool } from '@/lib/fetchRoulettePool'
 import LowPoolsClient from './LowPoolsClient'
 
 export default async function LowPoolsPage() {
-  const data = await fetchLowPools()
+  const [data, rouletteData] = await Promise.all([
+    fetchLowPools(),
+    fetchRoulettePool().catch(err => {
+      console.error('[LowPoolsPage] roulette fetch failed:', err)
+      return null
+    }),
+  ])
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -26,7 +33,7 @@ export default async function LowPoolsPage() {
           </p>
         </div>
 
-        <LowPoolsClient data={data} />
+        <LowPoolsClient data={data} rouletteData={rouletteData} />
 
         <footer className="mt-12 text-center text-xs text-slate-600">
           Exacta Alerts · Low Pools
