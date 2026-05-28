@@ -2,6 +2,8 @@ import React from 'react'
 import Link from 'next/link'
 import { fetchMachineCounts, MachineRow } from '@/lib/fetchMachineCounts'
 
+export const dynamic = 'force-dynamic'
+
 interface MarketGroup {
   market: string
   facilities: MachineRow[]

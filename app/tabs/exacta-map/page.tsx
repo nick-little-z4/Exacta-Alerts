@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { fetchMachineCounts } from '@/lib/fetchMachineCounts'
 import MapViewer from './MapViewer'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const API_VERSION = '3.23'
 

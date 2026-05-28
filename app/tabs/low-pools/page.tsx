@@ -3,6 +3,8 @@ import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchRoulettePool } from '@/lib/fetchRoulettePool'
 import LowPoolsClient from './LowPoolsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LowPoolsPage() {
   const [data, rouletteData] = await Promise.all([
     fetchLowPools(),

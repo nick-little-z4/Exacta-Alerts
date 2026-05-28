@@ -4,6 +4,8 @@ import { fetchReportComps } from '@/lib/fetchReportComps'
 import DateRangeFilter from './DateRangeFilter'
 import ReportCompsClient from './ReportCompsClient'
 
+export const dynamic = 'force-dynamic'
+
 function toDate(raw: string): Date | null {
   if (!raw) return null
   const d = new Date(raw)
