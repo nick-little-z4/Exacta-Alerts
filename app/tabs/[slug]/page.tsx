@@ -2,8 +2,12 @@ import { tabs } from '@/lib/tabs'
 import TabPageLayout from '@/components/TabPageLayout'
 import { notFound } from 'next/navigation'
 
+const DEDICATED_PAGES = ['machine-counts', 'exacta-map', 'low-pools', 'daily-report-mismatch']
+
 export function generateStaticParams() {
-  return tabs.map((tab) => ({ slug: tab.slug }))
+  return tabs
+    .filter(tab => !DEDICATED_PAGES.includes(tab.slug))
+    .map((tab) => ({ slug: tab.slug }))
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }) {
@@ -12,6 +16,7 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
 }
 
 export default function TabPage({ params }: { params: { slug: string } }) {
+  if (DEDICATED_PAGES.includes(params.slug)) notFound()
   const tab = tabs.find((t) => t.slug === params.slug)
   if (!tab) notFound()
   return <TabPageLayout tab={tab} />
