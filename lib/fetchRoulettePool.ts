@@ -88,7 +88,7 @@ export async function fetchRoulettePool(): Promise<RoulettePoolData> {
 
     let seedPct = parseFloat(rawSeed.replace('%', '').replace(',', ''))
     if (!isNaN(seedPct) && seedPct > 0) {
-        if (seedPct <= 1) seedPct = seedPct * 100
+        if (seedPct < 2) seedPct = seedPct * 100
         points.push({ site, date, seedPct })
         siteSet.add(site)
         dateSet.add(date)

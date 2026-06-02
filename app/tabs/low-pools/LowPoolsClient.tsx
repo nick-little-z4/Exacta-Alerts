@@ -343,17 +343,19 @@ export default function LowPoolsClient({
   }, [router])
 
   const activeCriticals = criticals.filter(r => !acknowledgedKeys.has(rowKey(r)))
-  const reviewedRows = acknowledgedMeta.map(a => ({
-    site: a.site,
-    manufacturerid: '',
-    mathname: a.mathname,
-    denomination: a.denomination,
-    poolbalance: '0',
-    poolpercentage: '0',
-    ...criticals.find(c => rowKey(c) === rowKey(a)),
-    ...newCriticals.find(c => rowKey(c) === rowKey(a)),
-    notes: a.notes,
-  })) as PoolRow[]
+  const reviewedRows = acknowledgedMeta.map(a => {
+    const livePool = data.all_pools?.find(c => rowKey(c) === rowKey(a))
+    return {
+      site: a.site,
+      manufacturerid: a.manufacturerid ?? livePool?.manufacturerid ?? '',
+      mathname: a.mathname,
+      denomination: a.denomination,
+      poolbalance: a.poolbalance ?? livePool?.poolbalance ?? '0',
+      poolpercentage: a.poolpercentage ?? livePool?.poolpercentage ?? '0',
+      ...livePool,
+      notes: a.notes,
+    }
+  }) as PoolRow[]
 
   const handleReview = async (row: PoolRow, notes: string) => {
     const key = rowKey(row)
@@ -362,7 +364,17 @@ export default function LowPoolsClient({
     setPendingRow(null)
     const resolvedNotes = notes || notesCache.get(key) || undefined
     setAcknowledgedKeys(prev => new Set([...prev, key]))
-    setAcknowledgedMeta(prev => [...prev, { site: row.site, mathname: row.mathname, denomination: row.denomination, acknowledged_at: new Date().toISOString(), acknowledged_by: 'staff', notes: resolvedNotes }])
+    setAcknowledgedMeta(prev => [...prev, {
+    site: row.site,
+    mathname: row.mathname,
+    denomination: row.denomination,
+    acknowledged_at: new Date().toISOString(),
+    acknowledged_by: 'staff',
+    notes: resolvedNotes,
+    poolbalance: row.poolbalance,
+    poolpercentage: row.poolpercentage,
+    manufacturerid: row.manufacturerid,
+    }])
     if (resolvedNotes) setNotesCache(prev => new Map(prev).set(key, resolvedNotes))
     try {
       const res = await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
@@ -448,8 +460,7 @@ export default function LowPoolsClient({
           </button>
           <button
             onClick={() => setView('roulette')}
-            // disabled={!rouletteData}
-            disabled={true}
+            disabled={!rouletteData}
             className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
               view === 'roulette'
                 ? 'bg-violet-600 text-white shadow'

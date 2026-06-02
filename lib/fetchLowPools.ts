@@ -20,6 +20,9 @@ export interface AcknowledgedPool {
   acknowledged_at?: string
   acknowledged_by?: string
   notes?: string
+  poolbalance?: string
+  poolpercentage?: string
+  manufacturerid?: string
 }
 
 export interface LowPoolsData {

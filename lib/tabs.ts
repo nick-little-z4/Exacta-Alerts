@@ -100,6 +100,23 @@ export const tabs: Tab[] = [
     notes: '',
     lastUpdated: '',
   },
+  {
+    slug: 'n-prizes',
+    icon: '🏅',
+    title: 'N Prizes',
+    status: 'ready',
+    goal: 'Games that paid out over $5000 last week.',
+    dataSources: [
+      { label: 'Primary Source', value: 'Data Warehouse (DW)' },
+      { label: 'Availability', value: '✅ Available' },
+      { label: 'Owner', value: '—' },
+      { label: 'Priority', value: '—' },
+    ],
+    requirements: [],
+    displayDetails: 'Games ranked by number of prizes paid out. Fields: Site, Math Name, Denomination, Net Prizes, # Prizes, Top Prizes.',
+    notes: '',
+    lastUpdated: '',
+  },
   // {
   //   slug: 'payout-pct-std-deviations',
   //   icon: '📉',

@@ -1,7 +1,12 @@
 import Link from 'next/link'
 import { Tab } from '@/lib/tabs'
 
-export default function TabCard({ tab }: { tab: Tab }) {
+interface BadgeInfo {
+  count: number
+  color: 'red' | 'amber' | 'sky'
+}
+
+export default function TabCard({ tab, badge }: { tab: Tab; badge?: BadgeInfo }) {
   return (
     <Link
       href={`/tabs/${tab.slug}`}
@@ -16,6 +21,15 @@ export default function TabCard({ tab }: { tab: Tab }) {
             {tab.icon}
           </span>
           {tab.title}
+          {badge && badge.count > 0 && (
+            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+              badge.color === 'red' ? 'bg-rose-900/70 text-rose-300 border border-rose-700/50' :
+              badge.color === 'amber' ? 'bg-amber-900/70 text-amber-300 border border-amber-700/50' :
+              'bg-sky-900/70 text-sky-300 border border-sky-700/50'
+            }`}>
+              {badge.count}
+            </span>
+          )}
         </div>
         <span className="text-slate-600 group-hover:text-orange-400 transition-colors">→</span>
       </div>
