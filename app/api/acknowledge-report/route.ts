@@ -11,7 +11,7 @@ async function callLambda(method: string, body: object) {
       'x-api-key': API_KEY,
     },
     body: JSON.stringify(body),
-    cache: 'no-store',
+    next: { revalidate: 300 } // 5 minutes
   })
 
   const text = await res.text()

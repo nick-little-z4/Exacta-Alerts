@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { fetchReportComps } from '@/lib/fetchReportComps'
 import DateRangeFilter from './DateRangeFilter'
 import ReportCompsClient from './ReportCompsClient'
+import RefreshButton from '@/components/RefreshButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,9 +78,12 @@ export default async function DailyReportMismatchPage({
               <span className="text-3xl">📋</span>
               <h1 className="text-2xl font-bold text-white">Mismatch Reports</h1>
             </div>
+          <div className="flex items-center gap-3">
+            <RefreshButton />
             <Suspense fallback={null}>
               <DateRangeFilter currentDays={daysParam} />
             </Suspense>
+          </div>
           </div>
           <p className="text-slate-400 text-sm mt-3">
             Facility daily reports where handle variance is inconsistent with the source system.

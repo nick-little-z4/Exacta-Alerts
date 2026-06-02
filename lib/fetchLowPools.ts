@@ -45,14 +45,14 @@ export async function fetchLowPools(): Promise<LowPoolsData> {
       `${process.env.EXACTA_API_BASE_URL}/low-pools`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store',
+        next: { revalidate: 3600 } // 1 hour
       }
     ),
     fetch(
       `${process.env.EXACTA_API_BASE_URL}/low-pools/acknowledged`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store',
+        next: { revalidate: 3600 } // 1 hour
       }
     ),
   ])

@@ -21,7 +21,7 @@ export async function fetchManualHandicappingWins(): Promise<ManualHandicappingW
     `${process.env.EXACTA_API_BASE_URL}/manual-handicapping-wins`,
     {
       headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-      cache: 'no-store', // always fetch latest from S3 reader
+      next: { revalidate: 3600 } // 1 hour
     }
   )
 

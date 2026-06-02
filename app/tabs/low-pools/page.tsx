@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchRoulettePool } from '@/lib/fetchRoulettePool'
 import LowPoolsClient from './LowPoolsClient'
+import RefreshButton from '@/components/RefreshButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,10 +27,13 @@ export default async function LowPoolsPage() {
         </Link>
 
         <div className="border-b border-slate-800 pb-6 mb-8">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl">⚠️</span>
             <h1 className="text-2xl font-bold text-white">Low Pools</h1>
           </div>
+          <RefreshButton />
+        </div>
           <p className="text-slate-400 text-sm mt-3">
             Games with critically low pool balances.
           </p>

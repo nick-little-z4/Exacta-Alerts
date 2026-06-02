@@ -209,7 +209,7 @@ function PoolTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-700">
-            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', '', ...(onReview ? [''] : [])].map((h, i) => (
+            {['Site', 'Manufacturer', 'Math Name', 'Denom', 'Pool Balance', 'Pool %', 'Notes', '', ...(onReview ? [''] : [])].map((h, i) => (
               <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
             ))}
           </tr>
@@ -227,6 +227,12 @@ function PoolTable({
                 <td className="px-4 py-2.5 text-slate-400 tabular-nums">{row.denomination}</td>
                 <td className="px-4 py-2.5 text-slate-300 tabular-nums">{Number(row.poolbalance).toLocaleString()}</td>
                 <td className="px-4 py-2.5"><SeverityBadge pct={row.poolpercentage} /></td>
+                <td className="px-4 py-2.5 text-xs text-slate-400 max-w-[200px]">
+                  {notesCache?.get(key)
+                    ? <span className="truncate block" title={notesCache.get(key)}>{notesCache.get(key)}</span>
+                    : <span className="text-slate-600 italic">No notes</span>
+                  }
+                </td>
                 <td className="px-4 py-2.5"><InfoButton onClick={() => onInfo(row)} hasNotes={hasNotes} /></td>
                 {onReview && (
                   <td className="px-4 py-2.5 text-right">
@@ -327,7 +333,11 @@ export default function LowPoolsClient({
   )
   const [acknowledgedMeta, setAcknowledgedMeta] = useState<AcknowledgedPool[]>(data?.acknowledged ?? [])
   const [notesCache, setNotesCache] = useState<Map<string, string>>(
-    () => new Map((data?.acknowledged ?? []).filter(a => a.notes).map(a => [rowKey(a), a.notes!]))
+    () => new Map(
+      (data?.acknowledged ?? [])
+        .filter(a => a.notes)
+        .map(a => [rowKey(a), a.notes!])
+    )
   )
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -410,6 +420,13 @@ export default function LowPoolsClient({
     await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
   }
 
+  const handleSaveWatchlistNotes = async (row: PoolRow, notes: string) => {
+    const key = rowKey(row)
+    setNotesCache(prev => { const next = new Map(prev); if (notes) next.set(key, notes); else next.delete(key); return next })
+    setInfoRow(prev => prev ? { ...prev, notes: notes || undefined } : null)
+    await fetch('/api/acknowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
+  }
+
   const isAcknowledged = (row: PoolRow) => acknowledgedKeys.has(rowKey(row))
 
   const statCards = [
@@ -427,7 +444,11 @@ export default function LowPoolsClient({
         <RowInfoModal
           row={infoRow}
           onClose={() => setInfoRow(null)}
-          onSaveNotes={isAcknowledged(infoRow) ? (notes) => handleSaveNotes(infoRow, notes) : undefined}
+          onSaveNotes={
+            isAcknowledged(infoRow)
+              ? (notes) => handleSaveNotes(infoRow, notes)
+              : (notes) => handleSaveWatchlistNotes(infoRow, notes)
+          }
         />
       )}
       {pendingRow && (
@@ -534,7 +555,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Watchlist</h2>
                 <span className="ml-auto text-xs text-slate-500">{warnings.length} pool{warnings.length !== 1 ? 's' : ''}</span>
               </div>
-              <PoolTable rows={warnings} emptyMsg="No warning pool list pools right now." onInfo={setInfoRow} notesCache={notesCache} />
+              <PoolTable rows={warnings} emptyMsg="No warning pool list pools right now." onInfo={(row) => setInfoRow({ ...row, notes: notesCache.get(rowKey(row)) })} notesCache={notesCache} />
             </div>
 
             <div className="bg-[#13152a] border border-sky-700/50 rounded-lg overflow-hidden">
@@ -543,7 +564,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">New Entries Today</h2>
                 <span className="ml-auto text-xs text-slate-500">{newEntries.length} pool{newEntries.length !== 1 ? 's' : ''}</span>
               </div>
-              <PoolTable rows={newEntries} emptyMsg="No new pool entries today." onInfo={setInfoRow} notesCache={notesCache} />
+              <PoolTable rows={newEntries} emptyMsg="No new pool entries today." onInfo={(row) => setInfoRow({ ...row, notes: notesCache.get(rowKey(row)) })} notesCache={notesCache} />
             </div>
           </div>
         </>

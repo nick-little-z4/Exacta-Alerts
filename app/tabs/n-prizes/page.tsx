@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { fetchNPrizes, NPrizesRow } from '@/lib/fetchNPrizes'
+import RefreshButton from '@/components/RefreshButton'
 
 function formatCurrency(val: number): string {
   return val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
@@ -38,10 +39,13 @@ export default async function NPrizesPage() {
         </Link>
 
         <div className="border-b border-slate-800 pb-6 mb-8">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🏅</span>
             <h1 className="text-2xl font-bold text-white">N Prizes</h1>
           </div>
+          <RefreshButton />
+        </div>
           <p className="text-slate-400 text-sm mt-3">
             Games that paid out over $5000 last week.
           </p>

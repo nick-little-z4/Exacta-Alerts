@@ -17,7 +17,7 @@ async function callLambda(method: string, body: object) {
       'x-api-key': API_KEY,
     },
     body: JSON.stringify(body),
-    cache: 'no-store',
+    next: { revalidate: 300 } // 5 minutes
   })
 
   const text = await res.text()
@@ -49,6 +49,17 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json(data)
   } catch (err) {
     console.error('[acknowledge] DELETE error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const data = await callLambda('PATCH', body)
+    return NextResponse.json(data)
+  } catch (err) {
+    console.error('[acknowledge] PATCH error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
