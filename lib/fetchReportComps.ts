@@ -69,7 +69,8 @@ export async function fetchReportComps(): Promise<{
       `${process.env.EXACTA_API_BASE_URL}/report-comps/acknowledged`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        next: { revalidate: 3600 } // 1 hour
+        //next: { revalidate: 3600 } // 1 hour
+        cache: 'no-store'
       }
     ),
   ])

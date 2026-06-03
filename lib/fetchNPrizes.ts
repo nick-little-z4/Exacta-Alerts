@@ -19,7 +19,7 @@ export async function fetchNPrizes(): Promise<NPrizesData> {
     `${process.env.EXACTA_API_BASE_URL}/n-prizes`,
     {
       headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-      next: { revalidate: 3600 } // 1 hour
+      cache: 'no-store'
     }
   )
 
