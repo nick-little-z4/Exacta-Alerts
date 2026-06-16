@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { fetchNPrizes, NPrizesRow } from '@/lib/fetchNPrizes'
-import RefreshButton from '@/components/RefreshButton'
 
 function formatCurrency(val: number): string {
   return val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
@@ -24,7 +23,6 @@ export default async function NPrizesPage() {
     error = String(err)
   }
 
-  const totalNetPrizes = data.reduce((sum, r) => sum + r.netprizes, 0)
   const multiPrizeCount = data.filter(r => r.num_prizes >= 2).length
 
   // Sort by first_exceeding_row descending to match original
@@ -44,7 +42,6 @@ export default async function NPrizesPage() {
             <span className="text-3xl">🏅</span>
             <h1 className="text-2xl font-bold text-white">N Prizes</h1>
           </div>
-          <RefreshButton />
         </div>
           <p className="text-slate-400 text-sm mt-3">
             Games that paid out over $5000 last week.
@@ -63,7 +60,7 @@ export default async function NPrizesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-2 gap-4 mb-10">
               <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Entries</div>
                 <div className="text-3xl font-bold text-amber-400">{data.length}</div>
@@ -73,11 +70,6 @@ export default async function NPrizesPage() {
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Multi-Prize</div>
                 <div className="text-3xl font-bold text-rose-400">{multiPrizeCount}</div>
                 <div className="text-xs text-slate-500 mt-1">2+ prizes to exceed net</div>
-              </div>
-              <div className="bg-[#13152a] border border-emerald-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Net Prizes</div>
-                <div className="text-3xl font-bold text-emerald-400">{formatCurrency(totalNetPrizes)}</div>
-                <div className="text-xs text-slate-500 mt-1">Across all entries</div>
               </div>
             </div>
 

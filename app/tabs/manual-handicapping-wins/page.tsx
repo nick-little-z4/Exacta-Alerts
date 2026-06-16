@@ -1,7 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
 import { fetchManualHandicappingWins, WinRow } from '@/lib/fetchManualHandicappingWins'
-import RefreshButton from '@/components/RefreshButton'
 
 export default async function ManualHandicappingWinsPage() {
   let data: Awaited<ReturnType<typeof fetchManualHandicappingWins>> | null = null
@@ -44,7 +43,6 @@ export default async function ManualHandicappingWinsPage() {
             <span className="text-3xl">🏆</span>
             <h1 className="text-2xl font-bold text-white">Manual Handicapping Wins</h1>
           </div>
-          <RefreshButton />
         </div>
           <p className="text-slate-400 text-sm mt-2">
             Sites with active manual handicapping activity — sorted by payout %.
