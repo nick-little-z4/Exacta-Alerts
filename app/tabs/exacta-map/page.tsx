@@ -1,12 +1,44 @@
 import Link from 'next/link'
 import { fetchMachineCounts } from '@/lib/fetchMachineCounts'
-import MapViewer from './MapViewer'
+import MapViewer, { FacilityRow } from './MapViewer'
 
 export const dynamic = 'force-dynamic'
 
 const API_VERSION = '3.23'
 
-async function getMapImage(): Promise<string> {
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') { inQuotes = !inQuotes }
+    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = '' }
+    else { current += char }
+  }
+  result.push(current.trim())
+  return result
+}
+
+function parseMapCSV(csv: string): FacilityRow[] {
+  const lines = csv.trim().split('\n').filter(l => l.trim())
+  const facilities: FacilityRow[] = []
+  for (const line of lines.slice(1)) {
+    const cols = parseCSVLine(line)
+    if (cols.length < 6) continue
+    const city = cols[0]?.trim() ?? ''
+    const country = cols[1]?.trim() ?? ''
+    const market = cols[2]?.trim() ?? ''
+    const rawCount = cols[3]?.replace(/[,$]/g, '').trim() ?? ''
+    const lat = parseFloat(cols[4]?.trim() ?? '')
+    const lng = parseFloat(cols[5]?.trim() ?? '')
+    if (!city || isNaN(lat) || isNaN(lng)) continue
+    facilities.push({ city, country, market, machineCount: rawCount ? parseInt(rawCount) : null, lat, lng })
+  }
+  return facilities
+}
+
+async function getFacilities(): Promise<FacilityRow[]> {
   const signinRes = await fetch(
     `${process.env.TABLEAU_HOST}/api/${API_VERSION}/auth/signin`,
     {
@@ -22,46 +54,30 @@ async function getMapImage(): Promise<string> {
     }
   )
   const signinData = await signinRes.json()
-  if (!signinData.credentials) throw new Error(`Signin failed`)
+  if (!signinData.credentials) throw new Error('Signin failed')
   const token = signinData.credentials.token
   const siteId = signinData.credentials.site.id
 
-  const viewLuid = process.env.TABLEAU_MAP_VIEW_ID
-  if (!viewLuid) throw new Error('TABLEAU_MAP_VIEW_ID is not set')
-
-  const imgRes = await fetch(
-    `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${viewLuid}/image?resolution=high`,
+  const csvRes = await fetch(
+    `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_MAP_VIEW_ID}/data?pageSize=10000`,
     { headers: { 'X-Tableau-Auth': token } }
   )
 
-  if (!imgRes.ok) {
-    const detail = await imgRes.text()
-    throw new Error(`Image fetch failed: ${imgRes.status} — ${detail}`)
-  }
-
-  const buffer = await imgRes.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString('base64')
-  return `data:image/png;base64,${base64}`
+  if (!csvRes.ok) throw new Error(`CSV fetch failed: ${csvRes.status}`)
+  const csv = await csvRes.text()
+  return parseMapCSV(csv)
 }
 
 export default async function ExactaMapPage() {
-  let imageSrc: string | null = null
+  let facilities: FacilityRow[] = []
   let error: string | null = null
 
   const { rows } = await fetchMachineCounts()
-
-  const marketMap = new Map<string, typeof rows>()
-  for (const row of rows) {
-    if (!marketMap.has(row.market)) marketMap.set(row.market, [])
-    marketMap.get(row.market)!.push(row)
-  }
-
-  const totalFacilities = rows.length
-  const totalMarkets = marketMap.size
   const totalMachines = rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0)
+  const totalMarkets = new Set(rows.map(r => r.market)).size
 
   try {
-    imageSrc = await getMapImage()
+    facilities = await getFacilities()
   } catch (err) {
     error = String(err)
   }
@@ -74,41 +90,41 @@ export default async function ExactaMapPage() {
           ← Back to Dashboard
         </Link>
 
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-800 pb-6 mb-8">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🗺️</span>
-              <h1 className="text-2xl font-bold text-white">Exacta Map</h1>
-            </div>
-            <p className="text-slate-400 text-sm mt-2">
-              Geographic overview of all Exacta properties.
-            </p>
+        <div className="border-b border-slate-800 pb-6 mb-8">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🗺️</span>
+            <h1 className="text-2xl font-bold text-white">Exacta Map</h1>
+          </div>
+          <p className="text-slate-400 text-sm mt-2">
+            Geographic overview of all Exacta properties. Click a dot or city name to explore.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-[#13152a] border border-slate-800 rounded-lg p-5">
+            <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Machines</div>
+            <div className="text-3xl font-bold text-white">{totalMachines.toLocaleString()}</div>
+            <div className="text-xs text-slate-500 mt-1">Latest month</div>
+          </div>
+          <div className="bg-[#13152a] border border-slate-800 rounded-lg p-5">
+            <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Facilities</div>
+            <div className="text-3xl font-bold text-white">{facilities.length}</div>
+            <div className="text-xs text-slate-500 mt-1">Active locations</div>
+          </div>
+          <div className="bg-[#13152a] border border-slate-800 rounded-lg p-5">
+            <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Markets</div>
+            <div className="text-3xl font-bold text-white">{totalMarkets}</div>
+            <div className="text-xs text-slate-500 mt-1">Geographic regions</div>
           </div>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[
-            { label: 'Total Machines (Latest Month)', value: totalMachines.toLocaleString() },
-            { label: 'Facilities', value: totalFacilities },
-            { label: 'Markets', value: totalMarkets },
-          ].map(card => (
-            <div key={card.label} className="bg-[#13152a] border border-slate-800 rounded-lg p-5">
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">{card.label}</div>
-              <div className="text-3xl font-bold text-white">{card.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Map */}
         {error ? (
           <div className="bg-rose-950 border border-rose-800 rounded-lg p-6 text-rose-300">
             Failed to load map: {error}
           </div>
-        ) : imageSrc ? (
-          <MapViewer src={imageSrc} />
-        ) : null}
+        ) : (
+          <MapViewer facilities={facilities} />
+        )}
 
         <footer className="mt-12 text-center text-xs text-slate-600">
           Exacta Alerts · Exacta Map

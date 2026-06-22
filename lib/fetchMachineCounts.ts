@@ -58,7 +58,6 @@ export async function fetchMachineCounts(): Promise<MachineCountsData> {
 
   const csv = await res.text()
   const lines = csv.trim().split('\n').slice(1).filter(l => l.trim())
-  console.log('Total CSV rows from Tableau:', lines.length)
 
   // First pass — collect every unique month string from column 4
   const monthSet = new Set<string>()
