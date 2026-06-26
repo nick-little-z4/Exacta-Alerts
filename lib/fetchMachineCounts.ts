@@ -4,12 +4,44 @@ export interface MachineRow {
   market: string
   enterprise: string
   facility: string
+  site: string
   counts: (number | null)[]
 }
 
 export interface MachineCountsData {
   rows: MachineRow[]
-  months: string[] // e.g. ['October 2025', 'November 2025', ...]
+  months: string[]
+}
+
+const SITE_TO_MARKET: Record<string, string> = {
+  // AL
+  BRC: 'AL', PAL: 'AL', MGR: 'AL', VLC: 'AL',
+  // KS
+  GIL: 'KS',
+  // KY
+  ASH: 'KY', BG: 'KY', CCG: 'KY', CB: 'KY', TUG: 'KY', KYD: 'KY',
+  EP: 'KY', KRM: 'KY', DCD: 'KY', DCG: 'KY', NPT: 'KY', OGG: 'KY', OWG: 'KY', WB: 'KY',
+  // MLT
+  '6398': 'MLT', '6388': 'MLT', '6018': 'MLT', '7135': 'MLT', '6404': 'MLT',
+  '6402': 'MLT', '6408': 'MLT', '1089': 'MLT', '6414': 'MLT', '7035': 'MLT',
+  '1355': 'MLT', '7013': 'MLT', '7010': 'MLT', '6171': 'MLT', '1173': 'MLT', '6417': 'MLT',
+  'IZI-MT': 'MLT',
+  // MP
+  'MPG-ERM': 'MP',
+  // NH
+  CWY: 'NH', DVR: 'NH', ACE: 'NH', OG: 'NH', KEN: 'NH', LEB: 'NH',
+  MCT: 'NH', NSH: 'NH', DNN: 'NH', LCC: 'NH', SAL: 'NH', BRK: 'NH',
+  // VA
+  CV: 'VA', DU: 'VA', RSE: 'VA', EM: 'VA', HA: 'VA', CD: 'VA',
+  HP5: 'VA', RI: 'VA', VI: 'VA',
+  // WY
+  BUF: 'WY', MI: 'WY', ML: 'WY', KC: 'WY', PW: 'WY', CWC: 'WY', CGW: 'WY',
+  PR: 'WY', CA: 'WY', PP: 'WY', COL: 'WY', RR: 'WY', CC: 'WY', CH: 'WY',
+  SR: 'WY', CDR: 'WY', CPL: 'WY', TBR: 'WY', DUG: 'WY', RH: 'WY',
+  EHD: 'WY', EV: 'WY', EG: 'WY', EMR: 'WY', BH: 'WY', GI: 'WY', GT: 'WY',
+  G59: 'WY', GWO: 'WY', GR: 'WY', TBG: 'WY', GU: 'WY', LR: 'WY', MBC: 'WY',
+  TF: 'WY', SG: 'WY', RSF: 'WY', HH: 'WY', RS: 'WY', LG: 'WY', SCA: 'WY',
+  SHR: 'WY', SH: 'WY', TR: 'WY',
 }
 
 function parseCSVLine(line: string): string[] {
@@ -57,49 +89,35 @@ export async function fetchMachineCounts(): Promise<MachineCountsData> {
   if (!res.ok) throw new Error(`Tableau returned ${res.status}: ${await res.text()}`)
 
   const csv = await res.text()
+  // Columns: Enterprise, Location (site code), Exacta Alerts Machine Count
   const lines = csv.trim().split('\n').slice(1).filter(l => l.trim())
 
-  // First pass — collect every unique month string from column 4
-  const monthSet = new Set<string>()
+  const rows: MachineRow[] = []
+
   for (const line of lines) {
     const cols = parseCSVLine(line)
-    if (cols.length >= 5 && cols[4]) monthSet.add(cols[4])
-  }
+    if (cols.length < 3) continue
+    const enterprise = cols[0]
+    const site = cols[1]
+    const count = parseInt(cols[2].replace(/,/g, ''), 10)
 
-  // Sort chronologically by parsing "Month YYYY"
-  const sortedMonths = Array.from(monthSet).sort(
-    (a, b) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime()
-  )
+    // Skip unknown/null sites
+    if (!site || site === 'Unknown' || !enterprise) continue
+    // Skip sites with no market mapping
+    const market = SITE_TO_MARKET[site]
+    if (!market) continue
 
-  // Map each month name to its column index
-  const monthIndex: Record<string, number> = {}
-  sortedMonths.forEach((m, i) => { monthIndex[m] = i })
-
-  // Second pass — build facility rows
-  const facilityMap = new Map<string, MachineRow>()
-  for (const line of lines) {
-    const cols = parseCSVLine(line)
-    if (cols.length < 6) continue
-    const enterprise = cols[0], facility = cols[1], market = cols[2]
-    const monthYear = cols[4]
-    const count = parseInt(cols[5].replace(/,/g, ''), 10)
-    const key = `${market}|||${enterprise}|||${facility}`
-    if (!facilityMap.has(key)) {
-      facilityMap.set(key, {
-        enterprise,
-        facility,
-        market,
-        counts: Array(sortedMonths.length).fill(null),
-      })
-    }
-    const idx = monthIndex[monthYear]
-    if (idx !== undefined && !isNaN(count)) {
-      facilityMap.get(key)!.counts[idx] = count
-    }
+    rows.push({
+      enterprise,
+      facility: site,
+      site,
+      market,
+      counts: [isNaN(count) ? null : count],
+    })
   }
 
   return {
-    rows: Array.from(facilityMap.values()),
-    months: sortedMonths,
+    rows,
+    months: ['Current'],
   }
 }
