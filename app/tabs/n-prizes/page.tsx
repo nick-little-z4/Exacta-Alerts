@@ -6,8 +6,9 @@ function formatCurrency(val: number): string {
 }
 
 function formatDenom(val: number): string {
-  if (val >= 1) return `$${val.toFixed(0)}`
-  return `${(val * 100).toFixed(0)}¢`
+  const dollars = val / 100
+  if (dollars >= 1) return `$${dollars.toFixed(0)}`
+  return `$${dollars.toFixed(2)}`
 }
 
 export default async function NPrizesPage() {
@@ -61,7 +62,7 @@ export default async function NPrizesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-2 gap-4 mb-10">
               <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Entries</div>
                 <div className="text-3xl font-bold text-amber-400">{data.length}</div>
@@ -72,11 +73,6 @@ export default async function NPrizesPage() {
               <div className="text-3xl font-bold text-rose-400">{multiPrizeCount}</div>
               <div className="text-xs text-slate-500 mt-1">2+ prizes to exceed net</div>
             </div>
-            <div className="bg-[#13152a] border border-green-900/50 rounded-lg p-5">
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Net Prizes</div>
-              <div className="text-3xl font-bold text-green-400">{formatCurrency(totalNetPrizes)}</div>
-              <div className="text-xs text-slate-500 mt-1">Sum of net prizes</div>
-            </div>
           </div>
 
             <div className="overflow-x-auto rounded-lg border border-slate-800">
@@ -86,7 +82,17 @@ export default async function NPrizesPage() {
                     <th className="px-4 py-3 text-left">Math Name</th>
                     <th className="px-4 py-3 text-right">Denom</th>
                     <th className="px-4 py-3 text-left">Site</th>
-                    <th className="px-4 py-3 text-right">Net Prizes</th>
+                    <th className="px-4 py-3 text-right">
+                    <span className="inline-flex items-center gap-1 justify-end">
+                      Net Prizes
+                      <span className="relative group cursor-help">
+                        <span className="text-slate-600 hover:text-slate-400 text-xs border border-slate-700 rounded-full w-4 h-4 inline-flex items-center justify-center">?</span>
+                        <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
+                          Sum of prizes minus sum of wagers over the 8-day rolling window for this math name, denom, and site combination.
+                        </span>
+                      </span>
+                    </span>
+                  </th>
                     <th className="px-4 py-3 text-right"># Prizes</th>
                     <th className="px-4 py-3 text-left">Top Prizes</th>
                     <th className="px-4 py-3 text-right">First Exceeding Row</th>
