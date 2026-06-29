@@ -27,6 +27,7 @@ export default async function NPrizesPage() {
 
   // Sort by first_exceeding_row descending to match original
   const sorted = [...data].sort((a, b) => b.first_exceeding_row - a.first_exceeding_row)
+  const totalNetPrizes = data.reduce((sum, r) => sum + r.netprizes, 0)
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -60,18 +61,23 @@ export default async function NPrizesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="grid grid-cols-3 gap-4 mb-10">
               <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Entries</div>
                 <div className="text-3xl font-bold text-amber-400">{data.length}</div>
                 <div className="text-xs text-slate-500 mt-1">Games flagged</div>
               </div>
               <div className="bg-[#13152a] border border-rose-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Multi-Prize</div>
-                <div className="text-3xl font-bold text-rose-400">{multiPrizeCount}</div>
-                <div className="text-xs text-slate-500 mt-1">2+ prizes to exceed net</div>
-              </div>
+              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Multi-Prize</div>
+              <div className="text-3xl font-bold text-rose-400">{multiPrizeCount}</div>
+              <div className="text-xs text-slate-500 mt-1">2+ prizes to exceed net</div>
             </div>
+            <div className="bg-[#13152a] border border-green-900/50 rounded-lg p-5">
+              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Net Prizes</div>
+              <div className="text-3xl font-bold text-green-400">{formatCurrency(totalNetPrizes)}</div>
+              <div className="text-xs text-slate-500 mt-1">Sum of net prizes</div>
+            </div>
+          </div>
 
             <div className="overflow-x-auto rounded-lg border border-slate-800">
               <table className="w-full text-sm">
