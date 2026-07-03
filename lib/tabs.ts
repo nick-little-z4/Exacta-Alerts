@@ -105,7 +105,7 @@ export const tabs: Tab[] = [
     icon: '🏅',
     title: 'N Prizes',
     status: 'ready',
-    goal: 'Games that paid out over $5000 last week.',
+    goal: 'N prizes tells us how many prizes it took to get the $5000+ payout. More than 5 prizes indicates a possible game malfunction.',
     dataSources: [
       { label: 'Primary Source', value: 'Data Warehouse (DW)' },
       { label: 'Availability', value: '✅ Available' },
