@@ -353,6 +353,7 @@ export default function LowPoolsClient({
   }, [router])
 
   const activeCriticals = criticals.filter(r => !acknowledgedKeys.has(rowKey(r)))
+
   const reviewedRows = acknowledgedMeta.map(a => {
     const livePool = data.all_pools?.find(c => rowKey(c) === rowKey(a))
     return {
@@ -365,7 +366,7 @@ export default function LowPoolsClient({
       ...livePool,
       notes: a.notes,
     }
-  }) as PoolRow[]
+  }).sort((a, b) => parseFloat(a.poolpercentage) - parseFloat(b.poolpercentage)) as PoolRow[]
 
   const handleReview = async (row: PoolRow, notes: string) => {
     const key = rowKey(row)
@@ -432,7 +433,6 @@ export default function LowPoolsClient({
   const statCards = [
     { label: 'Critical Pools', value: activeCriticals.length, sub: 'Under 60%', color: 'text-rose-400', border: 'border-rose-900/50' },
     { label: 'New Criticals', value: newCriticals.length, sub: 'First time today', color: 'text-orange-400', border: 'border-orange-900/50' },
-    { label: 'Reviewed', value: reviewedRows.length, sub: 'Acknowledged', color: 'text-emerald-400', border: 'border-emerald-900/50' },
     { label: 'Watchlist', value: warnings.length, sub: '60% – 70%', color: 'text-amber-400', border: 'border-amber-900/50' },
     { label: 'New Today', value: newEntries.length, sub: 'First seen today', color: 'text-sky-400', border: 'border-sky-900/50' },
   ]
@@ -509,7 +509,7 @@ export default function LowPoolsClient({
       {/* Pool monitor view */}
       {view === 'pools' && (
         <>
-          <div className="grid grid-cols-5 gap-4 mb-10">
+          <div className="grid grid-cols-4 gap-4 mb-10">
             {statCards.map(card => (
               <div key={card.label} className={`bg-[#13152a] border ${card.border} rounded-lg p-5`}>
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">{card.label}</div>

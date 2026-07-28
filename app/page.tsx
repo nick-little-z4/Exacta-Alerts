@@ -2,19 +2,25 @@ import TabCard from '@/components/TabCard'
 import { tabs } from '@/lib/tabs'
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchManualHandicappingWins } from '@/lib/fetchManualHandicappingWins'
+import { fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWins'
 import { fetchReportComps } from '@/lib/fetchReportComps'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
 
 export const dynamic = 'force-dynamic'
 
+function normalizeCheckdate(cd: string): string {
+  return cd.replace(' ', 'T').split('.')[0]
+}
+
 export default async function Dashboard() {
 
   // Fetch all badge data in parallel — failures are silent
-  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult] = await Promise.allSettled([
+  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult] = await Promise.allSettled([
     fetchLowPools(),
     fetchNPrizes(),
     fetchManualHandicappingWins(),
     fetchReportComps(),
+    fetchAcknowledgedHandicappingWins(),
   ])
 
   // Low pools — unacknowledged criticals
@@ -22,12 +28,19 @@ export default async function Dashboard() {
   const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
   const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
 
-  // Manual Handicapping Wins — sites with payout >= 100% and net win >= $100
+  // Manual Handicapping Wins — sites with payout >= 100% and net win >= $100, minus acknowledged
   const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value : null
+  const mhwAcknowledged = mhwAckResult.status === 'fulfilled' ? mhwAckResult.value : []
+  const mhwAckKeys = new Set(
+    mhwAcknowledged.map(a => `${a.sitename}-${normalizeCheckdate(a.checkdate)}`)
+  )
+  const mhwCheckdate = mhwData?.checkdate ?? ''
   const flaggedMHW = (mhwData?.data ?? []).filter(r => {
     const payout = parseFloat(r.payout)
     const netWin = r.net_win ?? 0
-    return payout >= 100 && netWin >= 100
+    if (!(payout >= 100 && netWin >= 100)) return false
+    const key = `${r.sitename}-${normalizeCheckdate(mhwCheckdate)}`
+    return !mhwAckKeys.has(key)
   }).length
 
   // Mismatch Reports — unacknowledged variances
