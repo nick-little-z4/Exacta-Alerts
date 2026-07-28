@@ -54,7 +54,6 @@ export default async function DailyReportMismatchPage({
 
   const withVariance = filteredRows.filter(r => r.handleVariance !== null && r.handleVariance !== 0).length
   const positiveVariance = filteredRows.filter(r => (r.handleVariance ?? 0) > 0).length
-  const acknowledgedCount = acknowledged.length
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -104,7 +103,7 @@ export default async function DailyReportMismatchPage({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-2 gap-4 mb-10">
               <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">With Variance</div>
                 <div className="text-3xl font-bold text-amber-400">{withVariance}</div>
@@ -114,11 +113,6 @@ export default async function DailyReportMismatchPage({
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Positive Variance</div>
                 <div className="text-3xl font-bold text-rose-400">{positiveVariance}</div>
                 <div className="text-xs text-slate-500 mt-1">Reported over master DB</div>
-              </div>
-              <div className="bg-[#13152a] border border-emerald-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Acknowledged</div>
-                <div className="text-3xl font-bold text-emerald-400">{acknowledgedCount}</div>
-                <div className="text-xs text-slate-500 mt-1">Reviewed by staff</div>
               </div>
             </div>
 

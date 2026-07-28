@@ -408,10 +408,6 @@ export default function MapViewer({ facilities }: Props) {
                   return hours ? (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500 uppercase tracking-widest">Gaming Day Start</span>
-                        <span className="text-sm text-slate-200">{hours}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-500 uppercase tracking-widest">Timezone</span>
                         <span className="text-xs text-slate-300">{timezone ?? '—'}</span>
                       </div>

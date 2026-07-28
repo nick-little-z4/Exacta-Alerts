@@ -11,6 +11,20 @@ function formatDenom(val: number): string {
   return `$${dollars.toFixed(2)}`
 }
 
+function formatToCDT(utcTimestamp: string): string {
+  const date = new Date(utcTimestamp + 'Z') // treat as UTC
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }) + ' CDT'
+}
+
 export default async function NPrizesPage() {
   let data: NPrizesRow[] = []
   let timestamp = ''
@@ -48,7 +62,7 @@ export default async function NPrizesPage() {
           {timestamp && (
             <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit">
               <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
-              <span className="text-slate-200 text-xs font-semibold">{timestamp} UTC</span>
+              <span className="text-slate-200 text-xs font-semibold">{formatToCDT(timestamp)}</span>
             </div>
           )}
         </div>
