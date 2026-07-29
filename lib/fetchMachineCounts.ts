@@ -11,6 +11,7 @@ export interface MachineRow {
 export interface MachineCountsData {
   rows: MachineRow[]
   months: string[]
+  lastRefreshed: string | null
 }
 
 const SITE_TO_MARKET: Record<string, string> = {
@@ -78,17 +79,57 @@ async function getToken(): Promise<{ token: string; siteId: string }> {
   return { token: data.credentials.token, siteId: data.credentials.site.id }
 }
 
+async function getLastRefreshTime(token: string, siteId: string): Promise<string | null> {
+  try {
+    const viewRes = await fetch(
+      `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_MACHINE_COUNT_VIEW_ID}`,
+      { headers: { 'X-Tableau-Auth': token, 'Accept': 'application/json' } }
+    )
+    console.log('[getLastRefreshTime] viewRes status:', viewRes.status)
+    if (!viewRes.ok) {
+      console.log('[getLastRefreshTime] viewRes body:', await viewRes.text())
+      return null
+    }
+    const viewData = await viewRes.json()
+    console.log('[getLastRefreshTime] viewData:', JSON.stringify(viewData))
+    const workbookId = viewData.view?.workbook?.id
+    if (!workbookId) {
+      console.log('[getLastRefreshTime] no workbookId found')
+      return null
+    }
+
+    const wbRes = await fetch(
+      `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/workbooks/${workbookId}`,
+      { headers: { 'X-Tableau-Auth': token, 'Accept': 'application/json' } }
+    )
+    console.log('[getLastRefreshTime] wbRes status:', wbRes.status)
+    if (!wbRes.ok) {
+      console.log('[getLastRefreshTime] wbRes body:', await wbRes.text())
+      return null
+    }
+    const wbData = await wbRes.json()
+    console.log('[getLastRefreshTime] wbData:', JSON.stringify(wbData))
+    return wbData.workbook?.updatedAt ?? null
+  } catch (err) {
+    console.log('[getLastRefreshTime] error:', err)
+    return null
+  }
+}
+
 export async function fetchMachineCounts(): Promise<MachineCountsData> {
   const { token, siteId } = await getToken()
 
-  const res = await fetch(
-    `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_MACHINE_COUNT_VIEW_ID}/data?pageSize=10000`,
-    { headers: { 'X-Tableau-Auth': token } }
-  )
+  const [dataRes, lastRefreshed] = await Promise.all([
+    fetch(
+      `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_MACHINE_COUNT_VIEW_ID}/data?pageSize=10000`,
+      { headers: { 'X-Tableau-Auth': token } }
+    ),
+    getLastRefreshTime(token, siteId),
+  ])
 
-  if (!res.ok) throw new Error(`Tableau returned ${res.status}: ${await res.text()}`)
+  if (!dataRes.ok) throw new Error(`Tableau returned ${dataRes.status}: ${await dataRes.text()}`)
 
-  const csv = await res.text()
+  const csv = await dataRes.text()
   // Columns: Enterprise, Location (site code), Exacta Alerts Machine Count
   const lines = csv.trim().split('\n').slice(1).filter(l => l.trim())
 
@@ -119,5 +160,6 @@ export async function fetchMachineCounts(): Promise<MachineCountsData> {
   return {
     rows,
     months: ['Current'],
+    lastRefreshed,
   }
 }

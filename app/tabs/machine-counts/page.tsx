@@ -100,7 +100,19 @@ function MiniMap({ groups }: MiniMapProps) {
 }
 
 export default async function MachineCountsPage() {
-  const { rows } = await fetchMachineCounts()
+  const { rows, lastRefreshed } = await fetchMachineCounts()
+  const timestamp = lastRefreshed
+    ? new Date(lastRefreshed).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }) + ' CDT'
+    : 'Unknown'
 
   const marketMap = new Map<string, MachineRow[]>()
   for (const row of rows) {
@@ -131,7 +143,14 @@ export default async function MachineCountsPage() {
               <h1 className="text-2xl font-bold text-white">Machine Counts</h1>
             </div>
           </div>
-          <p className="text-slate-400 text-sm mt-3">Machine counts by market.</p>
+              <p className="text-slate-400 text-sm mt-3">Machine counts by market.</p>
+              <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit relative group cursor-help">
+                <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
+                <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
+                <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
+                  Last updated from Tableau Data Source.
+                </span>
+              </div>
         </div>
 
         {/* Stat Cards */}

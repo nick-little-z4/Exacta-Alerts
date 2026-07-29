@@ -14,6 +14,19 @@ export default async function LowPoolsPage() {
     }),
   ])
 
+  const timestamp = data.last_run
+    ? new Date(data.last_run.replace(' ', 'T') + 'Z').toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }) + ' CDT'
+    : 'Unknown'
+
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
       <div className="max-w-6xl mx-auto">
@@ -35,6 +48,13 @@ export default async function LowPoolsPage() {
           <p className="text-slate-400 text-sm mt-3">
             Games with critically low pool balances.
           </p>
+          <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit relative group cursor-help">
+            <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
+            <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
+            <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
+              Reference last update from pool monitor daily table.
+            </span>
+          </div>
         </div>
 
         <LowPoolsClient data={data} rouletteData={rouletteData} />

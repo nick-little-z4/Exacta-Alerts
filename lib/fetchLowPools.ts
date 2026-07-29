@@ -26,6 +26,7 @@ export interface AcknowledgedPool {
 }
 
 export interface LowPoolsData {
+  last_run?: string | null
   criticals: PoolRow[]
   warnings: PoolRow[]
   new_entries: PoolRow[]
@@ -45,14 +46,14 @@ export async function fetchLowPools(): Promise<LowPoolsData> {
       `${process.env.EXACTA_API_BASE_URL}/low-pools`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        next: { revalidate: 3600 } // 1 hour
+        cache: 'no-store',
       }
     ),
     fetch(
       `${process.env.EXACTA_API_BASE_URL}/low-pools/acknowledged`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        next: { revalidate: 3600 } // 1 hour
+        cache: 'no-store',
       }
     ),
   ])
@@ -63,6 +64,8 @@ export async function fetchLowPools(): Promise<LowPoolsData> {
 
   const poolsData = await poolsRes.json()
   const body = typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
+  console.log('[fetchLowPools] last_run:', body.last_run)
+  console.log('[fetchLowPools] body keys:', Object.keys(body))
 
   // Don't crash the page if acknowledged fetch fails
   let acknowledged: AcknowledgedPool[] = []

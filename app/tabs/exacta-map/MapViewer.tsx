@@ -30,7 +30,7 @@ function project(lat: number, lng: number): { x: number; y: number } {
   const mercNorth = Math.log(Math.tan(Math.PI / 4 + northR / 2))
   const mercSouth = Math.log(Math.tan(Math.PI / 4 + southR / 2))
   const y = ((mercNorth - mercN) / (mercNorth - mercSouth)) * SVG_H
-  return { x, y }
+  return { x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000 }
 }
 
 // Offsets per site code to prevent stacking in same city

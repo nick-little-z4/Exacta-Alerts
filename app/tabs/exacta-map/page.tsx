@@ -141,7 +141,19 @@ export default async function ExactaMapPage() {
   let facilities: MapFacility[] = []
   let error: string | null = null
 
-  const { rows } = await fetchMachineCounts()
+  const { rows, lastRefreshed } = await fetchMachineCounts()
+  const timestamp = lastRefreshed
+    ? new Date(lastRefreshed).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }) + ' CDT'
+    : 'Unknown'
   const totalMachines = rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0)
   const totalMarkets = new Set(rows.map(r => r.market).filter(Boolean)).size
 
@@ -203,6 +215,13 @@ export default async function ExactaMapPage() {
           <p className="text-slate-400 text-sm mt-2">
             Geographic overview of all Exacta properties. Click a dot to explore.
           </p>
+          <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit relative group cursor-help">
+            <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
+            <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
+            <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
+              Last updated from Tableau Data Source.
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
