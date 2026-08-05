@@ -59,7 +59,7 @@ export default async function Dashboard() {
 
     // N Prizes
   const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
-  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10).length
+  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 6).length
 
   // Summary bar totals
   const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes
@@ -121,7 +121,7 @@ export default async function Dashboard() {
               {highNPrizes > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-300">
                   <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-slate-500">N Prizes ≥10</span>
+                  <span className="text-slate-500">N Prizes</span>
                   <span className="font-bold text-amber-400">{highNPrizes}</span>
                 </div>
               )}
