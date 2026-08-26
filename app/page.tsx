@@ -59,7 +59,7 @@ export default async function Dashboard() {
 
     // N Prizes
   const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
-  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 6).length
+  const highNPrizes = (nPrizesData?.legacy?.data ?? []).filter(r => r.num_prizes >= 6).length
 
   // Summary bar totals
   const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes

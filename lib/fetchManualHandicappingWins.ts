@@ -9,14 +9,20 @@ export interface WinRow {
 
 export interface ManualHandicappingWinsData {
   action: string
-  checkdate: string
+  checkdate: string | null
   site_count: number
   data: WinRow[]
   email_sent: boolean
-  cached_at?: string
+  cached_at?: string | null
+  error?: string | null
 }
 
-export async function fetchManualHandicappingWins(): Promise<ManualHandicappingWinsData> {
+export interface ManualHandicappingWinsComparisonData {
+  legacy: ManualHandicappingWinsData
+  new: ManualHandicappingWinsData
+}
+
+export async function fetchManualHandicappingWins(): Promise<ManualHandicappingWinsComparisonData> {
   const res = await fetch(
     `${process.env.EXACTA_API_BASE_URL}/manual-handicapping-wins`,
     {

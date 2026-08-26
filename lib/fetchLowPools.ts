@@ -1,5 +1,3 @@
-import { fetchAWS } from './fetchAWS'
-
 export interface PoolRow {
   site: string
   manufacturerid: string
@@ -38,9 +36,15 @@ export interface LowPoolsData {
   new_critical_count: number
   total_pool_count: number
   acknowledged: AcknowledgedPool[]
+  error?: string | null
 }
 
-export async function fetchLowPools(): Promise<LowPoolsData> {
+export interface LowPoolsComparisonData {
+  legacy: LowPoolsData
+  new: LowPoolsData
+}
+
+export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
   const [poolsRes, acknowledgedRes] = await Promise.all([
     fetch(
       `${process.env.EXACTA_API_BASE_URL}/low-pools`,
@@ -64,8 +68,6 @@ export async function fetchLowPools(): Promise<LowPoolsData> {
 
   const poolsData = await poolsRes.json()
   const body = typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
-  console.log('[fetchLowPools] last_run:', body.last_run)
-  console.log('[fetchLowPools] body keys:', Object.keys(body))
 
   // Don't crash the page if acknowledged fetch fails
   let acknowledged: AcknowledgedPool[] = []
@@ -79,8 +81,12 @@ export async function fetchLowPools(): Promise<LowPoolsData> {
     console.warn(`[fetchLowPools] acknowledged fetch failed: ${acknowledgedRes.status}`)
   }
 
+  // body is now { message, legacy: {...}, new: {...} } from the comparison reader.
+  // acknowledge state currently only exists for legacy — attach it there,
+  // and give "new" an empty acknowledged list until a dual-server
+  // acknowledge endpoint exists.
   return {
-    ...body,
-    acknowledged,
+    legacy: { ...body.legacy, acknowledged },
+    new: { ...body.new, acknowledged: [] },
   }
 }

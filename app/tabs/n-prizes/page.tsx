@@ -1,45 +1,16 @@
 import Link from 'next/link'
-import { fetchNPrizes, NPrizesRow } from '@/lib/fetchNPrizes'
-
-function formatCurrency(val: number): string {
-  return val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
-}
-
-function formatDenom(val: number): string {
-  const dollars = val / 100
-  if (dollars >= 1) return `$${dollars.toFixed(0)}`
-  return `$${dollars.toFixed(2)}`
-}
-
-function formatToCDT(utcTimestamp: string): string {
-  const date = new Date(utcTimestamp + 'Z') // treat as UTC
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/Chicago',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  }) + ' CDT'
-}
+import { fetchNPrizes } from '@/lib/fetchNPrizes'
+import NPrizesClient from './NPrizesClient'
 
 export default async function NPrizesPage() {
-  let data: NPrizesRow[] = []
-  let timestamp = ''
+  let comparison: Awaited<ReturnType<typeof fetchNPrizes>> | null = null
   let error: string | null = null
 
   try {
-    const result = await fetchNPrizes()
-    data = result.data
-    timestamp = result.timestamp
+    comparison = await fetchNPrizes()
   } catch (err) {
     error = String(err)
   }
-
-  const multiPrizeCount = data.filter(r => r.num_prizes >= 6).length
-  const sorted = [...data].sort((a, b) => b.first_exceeding_row - a.first_exceeding_row)
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -59,12 +30,6 @@ export default async function NPrizesPage() {
           <p className="text-slate-400 text-sm mt-3">
             N prizes tells us how many prizes it took to get the $5000+ payout. More than 5 prizes indicates a possible game malfunction.
           </p>
-          {timestamp && (
-            <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit">
-              <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
-              <span className="text-slate-200 text-xs font-semibold">{formatToCDT(timestamp)}</span>
-            </div>
-          )}
         </div>
 
         {error ? (
@@ -72,63 +37,7 @@ export default async function NPrizesPage() {
             Failed to load data: {error}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-2 gap-4 mb-10">
-              <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Entries</div>
-                <div className="text-3xl font-bold text-amber-400">{data.length}</div>
-                <div className="text-xs text-slate-500 mt-1">Games flagged</div>
-              </div>
-              <div className="bg-[#13152a] border border-rose-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Multi-Prize</div>
-                <div className="text-3xl font-bold text-rose-400">{multiPrizeCount}</div>
-                <div className="text-xs text-slate-500 mt-1">6+ prizes to exceed net</div>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto rounded-lg border border-slate-800">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#13152a] text-slate-400 text-xs uppercase tracking-widest">
-                    <th className="px-4 py-3 text-left">Math Name</th>
-                    <th className="px-4 py-3 text-right">Denom</th>
-                    <th className="px-4 py-3 text-left">Site</th>
-                    <th className="px-4 py-3 text-right">
-                      <span className="inline-flex items-center gap-1 justify-end">
-                        Net Prizes
-                        <span className="relative group cursor-help">
-                          <span className="text-slate-600 hover:text-slate-400 text-xs border border-slate-700 rounded-full w-4 h-4 inline-flex items-center justify-center">?</span>
-                          <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
-                            Sum of prizes minus sum of wagers over the 8-day rolling window for this math name, denom, and site combination.
-                          </span>
-                        </span>
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-right"># Prizes</th>
-                    <th className="px-4 py-3 text-left">Top Prizes</th>
-                    <th className="px-4 py-3 text-right">First Exceeding Row</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.map((row, i) => (
-                    <tr key={i} className={`border-t border-slate-800 hover:bg-[#13152a] transition-colors ${row.num_prizes >= 6 ? 'bg-rose-950/10' : ''}`}>
-                      <td className="px-4 py-3 text-slate-300 font-mono text-xs">{row.mathname}</td>
-                      <td className="px-4 py-3 text-right text-slate-300">{formatDenom(row.denom)}</td>
-                      <td className="px-4 py-3 font-semibold text-orange-400">{row.sitename}</td>
-                      <td className="px-4 py-3 text-right text-rose-400 font-semibold">{formatCurrency(row.netprizes)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${row.num_prizes >= 6 ? 'bg-rose-900/50 text-rose-300' : 'bg-slate-800 text-slate-400'}`}>
-                          {row.num_prizes}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">{row.top_prizes}</td>
-                      <td className="px-4 py-3 text-right text-slate-400">{row.first_exceeding_row}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <NPrizesClient comparison={comparison!} />
         )}
 
         <footer className="mt-12 text-center text-xs text-slate-600">

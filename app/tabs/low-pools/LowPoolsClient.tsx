@@ -316,9 +316,11 @@ type ViewMode = 'pools' | 'roulette'
 export default function LowPoolsClient({
   data,
   rouletteData,
+  readOnly = false,
 }: {
   data: LowPoolsData
   rouletteData: RoulettePoolData | null
+  readOnly?: boolean
 }) {
   const router = useRouter()
 
@@ -445,9 +447,11 @@ export default function LowPoolsClient({
           row={infoRow}
           onClose={() => setInfoRow(null)}
           onSaveNotes={
-            isAcknowledged(infoRow)
-              ? (notes) => handleSaveNotes(infoRow, notes)
-              : (notes) => handleSaveWatchlistNotes(infoRow, notes)
+            readOnly
+              ? undefined
+              : isAcknowledged(infoRow)
+                ? (notes) => handleSaveNotes(infoRow, notes)
+                : (notes) => handleSaveWatchlistNotes(infoRow, notes)
           }
         />
       )}
@@ -523,11 +527,11 @@ export default function LowPoolsClient({
             {newCriticals.length > -1 && (
               <div className="bg-[#13152a] border border-orange-700/50 rounded-lg overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-                  <span>🚨</span>
+                  <span>🆕</span>
                   <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">New Critical Today</h2>
                   <span className="ml-auto text-xs text-slate-500">{newCriticals.length} pool{newCriticals.length !== 1 ? 's' : ''}</span>
                 </div>
-                <PoolTable rows={newCriticals} emptyMsg="No new critical pools today." onReview={setPendingRow} loadingKey={loadingKey} acknowledgedKeys={acknowledgedKeys} onInfo={setInfoRow} notesCache={notesCache} />
+                <PoolTable rows={newCriticals} emptyMsg="No new critical pools today." onReview={readOnly ? undefined : setPendingRow} loadingKey={loadingKey} acknowledgedKeys={acknowledgedKeys} onInfo={setInfoRow} notesCache={notesCache} />
               </div>
             )}
 
@@ -537,7 +541,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Critical Pools</h2>
                 <span className="ml-auto text-xs text-slate-500">{activeCriticals.length} pool{activeCriticals.length !== 1 ? 's' : ''}</span>
               </div>
-              <PoolTable rows={activeCriticals} emptyMsg="No critical pools right now." onReview={setPendingRow} loadingKey={loadingKey} onInfo={setInfoRow} notesCache={notesCache} />
+              <PoolTable rows={activeCriticals} emptyMsg="No critical pools right now." onReview={readOnly ? undefined : setPendingRow} loadingKey={loadingKey} onInfo={setInfoRow} notesCache={notesCache} />
             </div>
 
             <div className="bg-[#13152a] border border-emerald-700/50 rounded-lg overflow-hidden">
@@ -546,7 +550,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Reviewed Pools</h2>
                 <span className="ml-auto text-xs text-slate-500">{reviewedRows.length} pool{reviewedRows.length !== 1 ? 's' : ''}</span>
               </div>
-              <ReviewedTable rows={reviewedRows} acknowledgedMeta={acknowledgedMeta} onUnreview={handleUnreview} loadingKey={loadingKey} onInfo={setInfoRow} />
+              <ReviewedTable rows={reviewedRows} acknowledgedMeta={acknowledgedMeta} onUnreview={readOnly ? () => {} : handleUnreview} loadingKey={loadingKey} onInfo={setInfoRow} />
             </div>
 
             <div className="bg-[#13152a] border border-amber-700/50 rounded-lg overflow-hidden">
@@ -560,7 +564,7 @@ export default function LowPoolsClient({
 
             <div className="bg-[#13152a] border border-sky-700/50 rounded-lg overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-                <span>🆕</span>
+                <span>🔵</span>
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">New Entries Today</h2>
                 <span className="ml-auto text-xs text-slate-500">{newEntries.length} pool{newEntries.length !== 1 ? 's' : ''}</span>
               </div>

@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchRoulettePool } from '@/lib/fetchRoulettePool'
-import LowPoolsClient from './LowPoolsClient'
+import LowPoolsSourceToggle from './LowPoolsSourceToggle'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LowPoolsPage() {
-  const [data, rouletteData] = await Promise.all([
+  const [comparison, rouletteData] = await Promise.all([
     fetchLowPools(),
     fetchRoulettePool().catch(err => {
       console.error('[LowPoolsPage] roulette fetch failed:', err)
@@ -14,8 +14,8 @@ export default async function LowPoolsPage() {
     }),
   ])
 
-  const timestamp = data.last_run
-    ? new Date(data.last_run.replace(' ', 'T') + 'Z').toLocaleString('en-US', {
+  const timestamp = comparison.legacy.last_run
+    ? new Date(comparison.legacy.last_run.replace(' ', 'T') + 'Z').toLocaleString('en-US', {
         timeZone: 'America/Chicago',
         month: 'short',
         day: 'numeric',
@@ -52,12 +52,12 @@ export default async function LowPoolsPage() {
             <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
             <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
             <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
-              Reference last update from pool monitor daily table.
+              Reference last update from pool monitor daily table (legacy).
             </span>
           </div>
         </div>
 
-        <LowPoolsClient data={data} rouletteData={rouletteData} />
+        <LowPoolsSourceToggle comparison={comparison} rouletteData={rouletteData} />
 
         <footer className="mt-12 text-center text-xs text-slate-600">
           Exacta Alerts · Low Pools

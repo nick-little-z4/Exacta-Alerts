@@ -17,16 +17,16 @@ export default function ManualHandicappingWinsClient({
   rows,
   checkdate,
   initialAcknowledged,
+  readOnly = false,
 }: {
   rows: WinRow[]
   checkdate: string | null
   initialAcknowledged: AcknowledgedHandicappingWin[]
+  readOnly?: boolean
 }) {
-const [acknowledgedKeys, setAcknowledgedKeys] = useState<Set<string>>(
-  () => new Set(initialAcknowledged.map(a => rowKey(a.sitename, a.checkdate)))
-)
-console.log('checkdate prop:', JSON.stringify(checkdate))
-console.log('initialAcknowledged:', JSON.stringify(initialAcknowledged))
+  const [acknowledgedKeys, setAcknowledgedKeys] = useState<Set<string>>(
+    () => new Set(initialAcknowledged.map(a => rowKey(a.sitename, a.checkdate)))
+  )
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,6 +40,7 @@ console.log('initialAcknowledged:', JSON.stringify(initialAcknowledged))
   )
 
   const handleToggle = async (row: WinRow) => {
+    if (readOnly) return
     const cd = checkdate ?? ''
     const key = rowKey(row.sitename, cd)
     const isAcked = acknowledgedKeys.has(key)
@@ -101,7 +102,9 @@ console.log('initialAcknowledged:', JSON.stringify(initialAcknowledged))
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Prizes</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Win</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Plays</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                  {!readOnly && (
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -119,19 +122,21 @@ console.log('initialAcknowledged:', JSON.stringify(initialAcknowledged))
                         {fmt(row.net_win ?? 0)}
                       </td>
                       <td className="text-right px-4 py-2.5 text-slate-300 tabular-nums">{row.plays.toLocaleString()}</td>
-                      <td className="text-right px-4 py-2.5">
-                        <button
-                          onClick={() => handleToggle(row)}
-                          disabled={isLoading}
-                          className={`text-xs px-3 py-1 rounded border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                            isAcked
-                              ? 'border-emerald-800 text-emerald-500 bg-emerald-950/20 hover:border-rose-500 hover:text-rose-400'
-                              : 'border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30'
-                          }`}
-                        >
-                          {isAcked ? '✅ Acknowledged' : 'Acknowledge'}
-                        </button>
-                      </td>
+                      {!readOnly && (
+                        <td className="text-right px-4 py-2.5">
+                          <button
+                            onClick={() => handleToggle(row)}
+                            disabled={isLoading}
+                            className={`text-xs px-3 py-1 rounded border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                              isAcked
+                                ? 'border-emerald-800 text-emerald-500 bg-emerald-950/20 hover:border-rose-500 hover:text-rose-400'
+                                : 'border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30'
+                            }`}
+                          >
+                            {isAcked ? '✅ Acknowledged' : 'Acknowledge'}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
