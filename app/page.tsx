@@ -24,12 +24,12 @@ export default async function Dashboard() {
   ])
 
   // Low pools — unacknowledged criticals
-  const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value : null
-  const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
-  const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
+const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value.legacy : null
+const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
+const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
 
   // Manual Handicapping Wins — sites with payout >= 100% and net win >= $100, minus acknowledged
-  const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value : null
+  const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value.legacy : null
   const mhwAcknowledged = mhwAckResult.status === 'fulfilled' ? mhwAckResult.value : []
   const mhwAckKeys = new Set(
     mhwAcknowledged.map(a => `${a.sitename}-${normalizeCheckdate(a.checkdate)}`)
