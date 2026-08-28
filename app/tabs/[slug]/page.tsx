@@ -2,7 +2,7 @@ import { tabs } from '@/lib/tabs'
 import TabPageLayout from '@/components/TabPageLayout'
 import { notFound } from 'next/navigation'
 
-const DEDICATED_PAGES = ['machine-counts', 'exacta-map', 'low-pools', 'daily-report-mismatch']
+const DEDICATED_PAGES = ['machine-counts', 'exacta-map', 'low-pools', 'daily-report-mismatch', 'zero-takeout-monitor']
 
 export function generateStaticParams() {
   return tabs
