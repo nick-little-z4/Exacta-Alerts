@@ -117,6 +117,23 @@ export const tabs: Tab[] = [
     notes: '',
     lastUpdated: '',
   },
+  {
+    slug: 'zero-takeout-monitor',
+    icon: '🎰',
+    title: 'Zero Takeout Monitor',
+    status: 'ready',
+    goal: 'Bets that generated zero house takeout — a sign of a possible game malfunction.',
+    dataSources: [
+      { label: 'Primary Source', value: 'Site Transactions Data' },
+      { label: 'Availability', value: '✅ Available' },
+      { label: 'Owner', value: '—' },
+      { label: 'Priority', value: '—' },
+    ],
+    requirements: [],
+    displayDetails: 'Games where a real wager occurred but the site took zero commission. Fields: Site, Math Name, Denomination, Occurrences, Total Wager, First Seen, Last Seen.',
+    notes: '',
+    lastUpdated: '',
+  },
   // {
   //   slug: 'payout-pct-std-deviations',
   //   icon: '📉',
