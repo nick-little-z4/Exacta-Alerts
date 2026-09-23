@@ -18,17 +18,23 @@ export default function ManualHandicappingWinsClient({
   checkdate,
   initialAcknowledged,
   readOnly = false,
+  source = 'legacy',
 }: {
   rows: WinRow[]
   checkdate: string | null
   initialAcknowledged: AcknowledgedHandicappingWin[]
   readOnly?: boolean
+  source?: 'legacy' | 'new'
 }) {
   const [acknowledgedKeys, setAcknowledgedKeys] = useState<Set<string>>(
     () => new Set(initialAcknowledged.map(a => rowKey(a.sitename, a.checkdate)))
   )
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const acknowledgeEndpoint = source === 'new'
+    ? '/api/handicapping-acknowledge-new'
+    : '/api/handicapping-acknowledge'
 
   const sorted = [...rows].sort((a, b) => parseFloat(b.payout) - parseFloat(a.payout))
 
@@ -37,10 +43,9 @@ export default function ManualHandicappingWinsClient({
   )
   const normal = sorted.filter(
     r => !(parseFloat(r.payout) >= 100 && (r.net_win ?? 0) >= 100)
-  )
+)
 
   const handleToggle = async (row: WinRow) => {
-    if (readOnly) return
     const cd = checkdate ?? ''
     const key = rowKey(row.sitename, cd)
     const isAcked = acknowledgedKeys.has(key)
@@ -56,7 +61,7 @@ export default function ManualHandicappingWinsClient({
     })
 
     try {
-      const res = await fetch('/api/handicapping-acknowledge', {
+      const res = await fetch(acknowledgeEndpoint, {
         method: isAcked ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sitename: row.sitename, checkdate: cd }),
