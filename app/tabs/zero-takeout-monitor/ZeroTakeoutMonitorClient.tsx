@@ -52,7 +52,7 @@ export default function ZeroTakeoutMonitorClient({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            HHR
+            ECS
           </button>
           <button
             onClick={() => setTab('etg')}
@@ -106,7 +106,7 @@ export default function ZeroTakeoutMonitorClient({
 
       {rows.length === 0 ? (
         <div className="bg-[#13152a] border border-emerald-900/30 rounded-lg p-10 text-center">
-          <p className="text-emerald-400 font-semibold">✅ No transactions found.</p>
+          <p className="text-emerald-400 font-semibold">✅ No zero-takeout transactions found.</p>
         </div>
       ) : tab === 'hhr' ? (
         <div className="overflow-x-auto rounded-lg border border-slate-800">

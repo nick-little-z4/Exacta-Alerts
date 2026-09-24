@@ -316,11 +316,11 @@ type ViewMode = 'pools' | 'roulette'
 export default function LowPoolsClient({
   data,
   rouletteData,
-  readOnly = false,
+  source = 'legacy',
 }: {
   data: LowPoolsData
   rouletteData: RoulettePoolData | null
-  readOnly?: boolean
+  source?: 'legacy' | 'new'
 }) {
   const router = useRouter()
 
@@ -390,7 +390,7 @@ export default function LowPoolsClient({
     }])
     if (resolvedNotes) setNotesCache(prev => new Map(prev).set(key, resolvedNotes))
     try {
-      const res = await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
+      const res = await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
       if (!res.ok) throw new Error('Failed to acknowledge')
     } catch {
       setAcknowledgedKeys(prev => { const next = new Set(prev); next.delete(key); return next })
@@ -406,7 +406,7 @@ export default function LowPoolsClient({
     setAcknowledgedKeys(prev => { const next = new Set(prev); next.delete(key); return next })
     setAcknowledgedMeta(prev => prev.filter(a => rowKey(a) !== key))
     try {
-      const res = await fetch('/api/acknowledge', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination }) })
+      const res = await fetch('/api/acknowledge', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, source }) })
       if (!res.ok) throw new Error('Failed to remove acknowledgement')
     } catch {
       setAcknowledgedKeys(prev => new Set([...prev, key]))
@@ -420,14 +420,14 @@ export default function LowPoolsClient({
     setAcknowledgedMeta(prev => prev.map(a => rowKey(a) === key ? { ...a, notes: notes || undefined } : a))
     setNotesCache(prev => { const next = new Map(prev); if (notes) next.set(key, notes); else next.delete(key); return next })
     setInfoRow(prev => prev ? { ...prev, notes: notes || undefined } : null)
-    await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
+    await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
   }
 
   const handleSaveWatchlistNotes = async (row: PoolRow, notes: string) => {
     const key = rowKey(row)
     setNotesCache(prev => { const next = new Map(prev); if (notes) next.set(key, notes); else next.delete(key); return next })
     setInfoRow(prev => prev ? { ...prev, notes: notes || undefined } : null)
-    await fetch('/api/acknowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
+    await fetch('/api/acknowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
   }
 
   const isAcknowledged = (row: PoolRow) => acknowledgedKeys.has(rowKey(row))
@@ -447,11 +447,9 @@ export default function LowPoolsClient({
           row={infoRow}
           onClose={() => setInfoRow(null)}
           onSaveNotes={
-            readOnly
-              ? undefined
-              : isAcknowledged(infoRow)
-                ? (notes) => handleSaveNotes(infoRow, notes)
-                : (notes) => handleSaveWatchlistNotes(infoRow, notes)
+            isAcknowledged(infoRow)
+              ? (notes) => handleSaveNotes(infoRow, notes)
+              : (notes) => handleSaveWatchlistNotes(infoRow, notes)
           }
         />
       )}
@@ -531,7 +529,7 @@ export default function LowPoolsClient({
                   <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">New Critical Today</h2>
                   <span className="ml-auto text-xs text-slate-500">{newCriticals.length} pool{newCriticals.length !== 1 ? 's' : ''}</span>
                 </div>
-                <PoolTable rows={newCriticals} emptyMsg="No new critical pools today." onReview={readOnly ? undefined : setPendingRow} loadingKey={loadingKey} acknowledgedKeys={acknowledgedKeys} onInfo={setInfoRow} notesCache={notesCache} />
+                <PoolTable rows={newCriticals} emptyMsg="No new critical pools today." onReview={setPendingRow} loadingKey={loadingKey} acknowledgedKeys={acknowledgedKeys} onInfo={setInfoRow} notesCache={notesCache} />
               </div>
             )}
 
@@ -541,7 +539,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Critical Pools</h2>
                 <span className="ml-auto text-xs text-slate-500">{activeCriticals.length} pool{activeCriticals.length !== 1 ? 's' : ''}</span>
               </div>
-              <PoolTable rows={activeCriticals} emptyMsg="No critical pools right now." onReview={readOnly ? undefined : setPendingRow} loadingKey={loadingKey} onInfo={setInfoRow} notesCache={notesCache} />
+              <PoolTable rows={activeCriticals} emptyMsg="No critical pools right now." onReview={setPendingRow} loadingKey={loadingKey} onInfo={setInfoRow} notesCache={notesCache} />
             </div>
 
             <div className="bg-[#13152a] border border-emerald-700/50 rounded-lg overflow-hidden">
@@ -550,7 +548,7 @@ export default function LowPoolsClient({
                 <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">Reviewed Pools</h2>
                 <span className="ml-auto text-xs text-slate-500">{reviewedRows.length} pool{reviewedRows.length !== 1 ? 's' : ''}</span>
               </div>
-              <ReviewedTable rows={reviewedRows} acknowledgedMeta={acknowledgedMeta} onUnreview={readOnly ? () => {} : handleUnreview} loadingKey={loadingKey} onInfo={setInfoRow} />
+              <ReviewedTable rows={reviewedRows} acknowledgedMeta={acknowledgedMeta} onUnreview={handleUnreview} loadingKey={loadingKey} onInfo={setInfoRow} />
             </div>
 
             <div className="bg-[#13152a] border border-amber-700/50 rounded-lg overflow-hidden">

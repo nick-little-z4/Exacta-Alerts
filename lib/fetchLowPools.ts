@@ -45,7 +45,7 @@ export interface LowPoolsComparisonData {
 }
 
 export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
-  const [poolsRes, acknowledgedRes] = await Promise.all([
+  const [poolsRes, ackLegacyRes, ackEcsRes] = await Promise.all([
     fetch(
       `${process.env.EXACTA_API_BASE_URL}/low-pools`,
       {
@@ -60,6 +60,13 @@ export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
         cache: 'no-store',
       }
     ),
+    fetch(
+      `${process.env.EXACTA_API_BASE_URL}/low-pools-ecs/acknowledged`,
+      {
+        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
+        cache: 'no-store',
+      }
+    ),
   ])
 
   if (!poolsRes.ok) {
@@ -69,24 +76,23 @@ export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
   const poolsData = await poolsRes.json()
   const body = typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
 
-  // Don't crash the page if acknowledged fetch fails
-  let acknowledged: AcknowledgedPool[] = []
-  if (acknowledgedRes.ok) {
-    const acknowledgedData = await acknowledgedRes.json()
-    const acknowledgedBody = typeof acknowledgedData.body === 'string'
-      ? JSON.parse(acknowledgedData.body)
-      : acknowledgedData
-    acknowledged = acknowledgedBody.acknowledged ?? []
-  } else {
-    console.warn(`[fetchLowPools] acknowledged fetch failed: ${acknowledgedRes.status}`)
+  let ackLegacy: AcknowledgedPool[] = []
+  if (ackLegacyRes.ok) {
+    const d = await ackLegacyRes.json()
+    const b = typeof d.body === 'string' ? JSON.parse(d.body) : d
+    ackLegacy = b.acknowledged ?? []
   }
 
-  // body is now { message, legacy: {...}, new: {...} } from the comparison reader.
-  // acknowledge state currently only exists for legacy — attach it there,
-  // and give "new" an empty acknowledged list until a dual-server
-  // acknowledge endpoint exists.
+  let ackEcs: AcknowledgedPool[] = []
+  if (ackEcsRes.ok) {
+    const d = await ackEcsRes.json()
+    const b = typeof d.body === 'string' ? JSON.parse(d.body) : d
+    ackEcs = b.acknowledged ?? []
+  }
+
+  // body is { message, legacy: {...}, new: {...} } from the comparison reader.
   return {
-    legacy: { ...body.legacy, acknowledged },
-    new: { ...body.new, acknowledged: [] },
+    legacy: { ...body.legacy, acknowledged: ackLegacy },
+    new: { ...body.new, acknowledged: ackEcs },
   }
 }

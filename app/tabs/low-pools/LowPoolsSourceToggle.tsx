@@ -42,18 +42,18 @@ export default function LowPoolsSourceToggle({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            New
+            ECS
           </button>
         </div>
 
-        {source === 'new' && (
-          <span className="text-xs text-amber-400">
-            ⚠ Viewing new server — validation only, acknowledge actions here are not tracked separately
+        {active.error && (
+          <span className="text-xs text-rose-400">
+            {source} error: {active.error}
           </span>
         )}
       </div>
 
-      <LowPoolsClient key={source} data={active} rouletteData={rouletteData} readOnly={source === 'new'} />
+      <LowPoolsClient key={source} data={active} rouletteData={rouletteData} source={source} />
     </>
   )
 }

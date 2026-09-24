@@ -1,65 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const BASE_URL = process.env.EXACTA_API_BASE_URL
-const API_KEY = process.env.EXACTA_API_KEY!
+async function forward(req: NextRequest, method: string) {
+  const body = await req.json()
+  const { source, ...rest } = body
+  const path = source === 'new' ? '/low-pools-ecs/acknowledge' : '/low-pools/acknowledge'
 
-async function callLambda(method: string, body: object) {
-  const url = `${BASE_URL}/low-pools/acknowledge`
-  console.log(`[acknowledge] ${method} → ${url}`)
-  console.log(`[acknowledge] body:`, JSON.stringify(body))
-  console.log(`[acknowledge] API_KEY present:`, !!API_KEY)
-  console.log(`[acknowledge] BASE_URL:`, BASE_URL)
-
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-    },
-    body: JSON.stringify(body),
-    next: { revalidate: 300 } // 5 minutes
-  })
-
-  const text = await res.text()
-  console.log(`[acknowledge] response status:`, res.status)
-  console.log(`[acknowledge] response body:`, text)
-
-  if (!res.ok) {
-    throw new Error(`Lambda error: ${res.status} — ${text}`)
-  }
-
-  return JSON.parse(text)
+  const res = await fetch(
+    `${process.env.EXACTA_API_BASE_URL}${path}`,
+    {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.EXACTA_API_KEY ?? '',
+      },
+      body: JSON.stringify(rest),
+    }
+  )
+  const data = await res.json()
+  return NextResponse.json(data, { status: res.status })
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const data = await callLambda('POST', body)
-    return NextResponse.json(data)
-  } catch (err) {
-    console.error('[acknowledge] POST error:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
-  }
+  return forward(req, 'POST')
 }
 
 export async function DELETE(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const data = await callLambda('DELETE', body)
-    return NextResponse.json(data)
-  } catch (err) {
-    console.error('[acknowledge] DELETE error:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
-  }
+  return forward(req, 'DELETE')
 }
 
 export async function PATCH(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const data = await callLambda('PATCH', body)
-    return NextResponse.json(data)
-  } catch (err) {
-    console.error('[acknowledge] PATCH error:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
-  }
+  return forward(req, 'PATCH')
 }
