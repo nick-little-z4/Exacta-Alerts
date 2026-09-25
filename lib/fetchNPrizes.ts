@@ -8,19 +8,13 @@ export interface NPrizesRow {
   first_exceeding_row: number
 }
 
-export interface NPrizesSourceData {
+export interface NPrizesData {
   data: NPrizesRow[]
   count: number
-  timestamp: string | null
-  error: string | null
+  timestamp: string
 }
 
-export interface NPrizesComparisonData {
-  legacy: NPrizesSourceData
-  new: NPrizesSourceData
-}
-
-export async function fetchNPrizes(): Promise<NPrizesComparisonData> {
+export async function fetchNPrizes(): Promise<NPrizesData> {
   const res = await fetch(
     `${process.env.EXACTA_API_BASE_URL}/n-prizes`,
     {

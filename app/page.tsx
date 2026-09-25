@@ -2,7 +2,7 @@ import TabCard from '@/components/TabCard'
 import { tabs } from '@/lib/tabs'
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchManualHandicappingWins } from '@/lib/fetchManualHandicappingWins'
-import { fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWins'
+import { fetchAcknowledgedHandicappingWinsNew as fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWinsNew'
 import { fetchReportComps } from '@/lib/fetchReportComps'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
 
@@ -24,12 +24,12 @@ export default async function Dashboard() {
   ])
 
   // Low pools — unacknowledged criticals
-const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value.legacy : null
-const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
-const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
+  const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value : null
+  const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
+  const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
 
   // Manual Handicapping Wins — sites with payout >= 100% and net win >= $100, minus acknowledged
-  const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value.legacy : null
+  const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value : null
   const mhwAcknowledged = mhwAckResult.status === 'fulfilled' ? mhwAckResult.value : []
   const mhwAckKeys = new Set(
     mhwAcknowledged.map(a => `${a.sitename}-${normalizeCheckdate(a.checkdate)}`)
@@ -59,7 +59,7 @@ const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !ack
 
     // N Prizes
   const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
-  const highNPrizes = (nPrizesData?.legacy?.data ?? []).filter(r => r.num_prizes >= 6).length
+  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10).length
 
   // Summary bar totals
   const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes
@@ -121,7 +121,7 @@ const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !ack
               {highNPrizes > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-300">
                   <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-slate-500">N Prizes</span>
+                  <span className="text-slate-500">N Prizes ≥10</span>
                   <span className="font-bold text-amber-400">{highNPrizes}</span>
                 </div>
               )}

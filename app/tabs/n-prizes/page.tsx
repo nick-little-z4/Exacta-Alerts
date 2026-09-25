@@ -3,11 +3,11 @@ import { fetchNPrizes } from '@/lib/fetchNPrizes'
 import NPrizesClient from './NPrizesClient'
 
 export default async function NPrizesPage() {
-  let comparison: Awaited<ReturnType<typeof fetchNPrizes>> | null = null
+  let data: Awaited<ReturnType<typeof fetchNPrizes>> | null = null
   let error: string | null = null
 
   try {
-    comparison = await fetchNPrizes()
+    data = await fetchNPrizes()
   } catch (err) {
     error = String(err)
   }
@@ -37,7 +37,7 @@ export default async function NPrizesPage() {
             Failed to load data: {error}
           </div>
         ) : (
-          <NPrizesClient comparison={comparison!} />
+          <NPrizesClient data={data!} />
         )}
 
         <footer className="mt-12 text-center text-xs text-slate-600">

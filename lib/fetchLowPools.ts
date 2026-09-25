@@ -36,25 +36,12 @@ export interface LowPoolsData {
   new_critical_count: number
   total_pool_count: number
   acknowledged: AcknowledgedPool[]
-  error?: string | null
 }
 
-export interface LowPoolsComparisonData {
-  legacy: LowPoolsData
-  new: LowPoolsData
-}
-
-export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
-  const [poolsRes, ackLegacyRes, ackEcsRes] = await Promise.all([
+export async function fetchLowPools(): Promise<LowPoolsData> {
+  const [poolsRes, acknowledgedRes] = await Promise.all([
     fetch(
-      `${process.env.EXACTA_API_BASE_URL}/low-pools`,
-      {
-        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store',
-      }
-    ),
-    fetch(
-      `${process.env.EXACTA_API_BASE_URL}/low-pools/acknowledged`,
+      `${process.env.EXACTA_API_BASE_URL}/low-pools-ecs`,
       {
         headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
         cache: 'no-store',
@@ -76,23 +63,19 @@ export async function fetchLowPools(): Promise<LowPoolsComparisonData> {
   const poolsData = await poolsRes.json()
   const body = typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
 
-  let ackLegacy: AcknowledgedPool[] = []
-  if (ackLegacyRes.ok) {
-    const d = await ackLegacyRes.json()
-    const b = typeof d.body === 'string' ? JSON.parse(d.body) : d
-    ackLegacy = b.acknowledged ?? []
+  let acknowledged: AcknowledgedPool[] = []
+  if (acknowledgedRes.ok) {
+    const acknowledgedData = await acknowledgedRes.json()
+    const acknowledgedBody = typeof acknowledgedData.body === 'string'
+      ? JSON.parse(acknowledgedData.body)
+      : acknowledgedData
+    acknowledged = acknowledgedBody.acknowledged ?? []
+  } else {
+    console.warn(`[fetchLowPools] acknowledged fetch failed: ${acknowledgedRes.status}`)
   }
 
-  let ackEcs: AcknowledgedPool[] = []
-  if (ackEcsRes.ok) {
-    const d = await ackEcsRes.json()
-    const b = typeof d.body === 'string' ? JSON.parse(d.body) : d
-    ackEcs = b.acknowledged ?? []
-  }
-
-  // body is { message, legacy: {...}, new: {...} } from the comparison reader.
   return {
-    legacy: { ...body.legacy, acknowledged: ackLegacy },
-    new: { ...body.new, acknowledged: ackEcs },
+    ...body,
+    acknowledged,
   }
 }

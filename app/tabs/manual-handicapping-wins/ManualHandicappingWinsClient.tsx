@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { WinRow } from '@/lib/fetchManualHandicappingWins'
-import { AcknowledgedHandicappingWin } from '@/lib/fetchAcknowledgedHandicappingWins'
+import { AcknowledgedHandicappingWin } from '@/lib/fetchAcknowledgedHandicappingWinsNew'
 
 function rowKey(sitename: string, checkdate: string) {
   const normalized = checkdate.replace(' ', 'T').split('.')[0]
@@ -17,24 +17,16 @@ export default function ManualHandicappingWinsClient({
   rows,
   checkdate,
   initialAcknowledged,
-  readOnly = false,
-  source = 'legacy',
 }: {
   rows: WinRow[]
   checkdate: string | null
   initialAcknowledged: AcknowledgedHandicappingWin[]
-  readOnly?: boolean
-  source?: 'legacy' | 'new'
 }) {
   const [acknowledgedKeys, setAcknowledgedKeys] = useState<Set<string>>(
     () => new Set(initialAcknowledged.map(a => rowKey(a.sitename, a.checkdate)))
   )
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const acknowledgeEndpoint = source === 'new'
-    ? '/api/handicapping-acknowledge-new'
-    : '/api/handicapping-acknowledge'
 
   const sorted = [...rows].sort((a, b) => parseFloat(b.payout) - parseFloat(a.payout))
 
@@ -43,7 +35,7 @@ export default function ManualHandicappingWinsClient({
   )
   const normal = sorted.filter(
     r => !(parseFloat(r.payout) >= 100 && (r.net_win ?? 0) >= 100)
-)
+  )
 
   const handleToggle = async (row: WinRow) => {
     const cd = checkdate ?? ''
@@ -52,7 +44,6 @@ export default function ManualHandicappingWinsClient({
     setLoadingKey(key)
     setError(null)
 
-    // Optimistic update
     setAcknowledgedKeys(prev => {
       const next = new Set(prev)
       if (isAcked) next.delete(key)
@@ -61,14 +52,13 @@ export default function ManualHandicappingWinsClient({
     })
 
     try {
-      const res = await fetch(acknowledgeEndpoint, {
+      const res = await fetch('/api/handicapping-acknowledge-ecs', {
         method: isAcked ? 'DELETE' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sitename: row.sitename, checkdate: cd }),
       })
       if (!res.ok) throw new Error('Request failed')
     } catch {
-      // Revert on failure
       setAcknowledgedKeys(prev => {
         const next = new Set(prev)
         if (isAcked) next.add(key)
@@ -89,7 +79,6 @@ export default function ManualHandicappingWinsClient({
         </div>
       )}
 
-      {/* Alert section — always visible */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-rose-400 font-bold text-sm uppercase tracking-widest">
@@ -107,9 +96,7 @@ export default function ManualHandicappingWinsClient({
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Prizes</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Win</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Plays</th>
-                  {!readOnly && (
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  )}
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,21 +114,19 @@ export default function ManualHandicappingWinsClient({
                         {fmt(row.net_win ?? 0)}
                       </td>
                       <td className="text-right px-4 py-2.5 text-slate-300 tabular-nums">{row.plays.toLocaleString()}</td>
-                      {!readOnly && (
-                        <td className="text-right px-4 py-2.5">
-                          <button
-                            onClick={() => handleToggle(row)}
-                            disabled={isLoading}
-                            className={`text-xs px-3 py-1 rounded border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                              isAcked
-                                ? 'border-emerald-800 text-emerald-500 bg-emerald-950/20 hover:border-rose-500 hover:text-rose-400'
-                                : 'border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30'
-                            }`}
-                          >
-                            {isAcked ? '✅ Acknowledged' : 'Acknowledge'}
-                          </button>
-                        </td>
-                      )}
+                      <td className="text-right px-4 py-2.5">
+                        <button
+                          onClick={() => handleToggle(row)}
+                          disabled={isLoading}
+                          className={`text-xs px-3 py-1 rounded border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                            isAcked
+                              ? 'border-emerald-800 text-emerald-500 bg-emerald-950/20 hover:border-rose-500 hover:text-rose-400'
+                              : 'border-slate-600 text-slate-400 hover:border-emerald-500 hover:text-emerald-400 hover:bg-emerald-950/30'
+                          }`}
+                        >
+                          {isAcked ? '✅ Acknowledged' : 'Acknowledge'}
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -153,7 +138,6 @@ export default function ManualHandicappingWinsClient({
         </div>
       </div>
 
-      {/* All other sites — no acknowledge button */}
       {normal.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">

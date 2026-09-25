@@ -316,11 +316,9 @@ type ViewMode = 'pools' | 'roulette'
 export default function LowPoolsClient({
   data,
   rouletteData,
-  source = 'legacy',
 }: {
   data: LowPoolsData
   rouletteData: RoulettePoolData | null
-  source?: 'legacy' | 'new'
 }) {
   const router = useRouter()
 
@@ -390,7 +388,7 @@ export default function LowPoolsClient({
     }])
     if (resolvedNotes) setNotesCache(prev => new Map(prev).set(key, resolvedNotes))
     try {
-      const res = await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
+      const res = await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
       if (!res.ok) throw new Error('Failed to acknowledge')
     } catch {
       setAcknowledgedKeys(prev => { const next = new Set(prev); next.delete(key); return next })
@@ -406,7 +404,7 @@ export default function LowPoolsClient({
     setAcknowledgedKeys(prev => { const next = new Set(prev); next.delete(key); return next })
     setAcknowledgedMeta(prev => prev.filter(a => rowKey(a) !== key))
     try {
-      const res = await fetch('/api/acknowledge', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, source }) })
+      const res = await fetch('/api/acknowledge', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination }) })
       if (!res.ok) throw new Error('Failed to remove acknowledgement')
     } catch {
       setAcknowledgedKeys(prev => new Set([...prev, key]))
@@ -420,14 +418,14 @@ export default function LowPoolsClient({
     setAcknowledgedMeta(prev => prev.map(a => rowKey(a) === key ? { ...a, notes: notes || undefined } : a))
     setNotesCache(prev => { const next = new Map(prev); if (notes) next.set(key, notes); else next.delete(key); return next })
     setInfoRow(prev => prev ? { ...prev, notes: notes || undefined } : null)
-    await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
+    await fetch('/api/acknowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
   }
 
   const handleSaveWatchlistNotes = async (row: PoolRow, notes: string) => {
     const key = rowKey(row)
     setNotesCache(prev => { const next = new Map(prev); if (notes) next.set(key, notes); else next.delete(key); return next })
     setInfoRow(prev => prev ? { ...prev, notes: notes || undefined } : null)
-    await fetch('/api/acknowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null, source }) })
+    await fetch('/api/acknowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: row.site, mathname: row.mathname, denomination: row.denomination, notes: notes || null }) })
   }
 
   const isAcknowledged = (row: PoolRow) => acknowledgedKeys.has(rowKey(row))

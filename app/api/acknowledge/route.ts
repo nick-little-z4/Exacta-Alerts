@@ -2,18 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 
 async function forward(req: NextRequest, method: string) {
   const body = await req.json()
-  const { source, ...rest } = body
-  const path = source === 'new' ? '/low-pools-ecs/acknowledge' : '/low-pools/acknowledge'
-
   const res = await fetch(
-    `${process.env.EXACTA_API_BASE_URL}${path}`,
+    `${process.env.EXACTA_API_BASE_URL}/low-pools-ecs/acknowledge`,
     {
       method,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.EXACTA_API_KEY ?? '',
       },
-      body: JSON.stringify(rest),
+      body: JSON.stringify(body),
     }
   )
   const data = await res.json()
