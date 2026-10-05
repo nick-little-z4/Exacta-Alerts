@@ -29,7 +29,7 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
     })
   }
 
-  const chartData: ChartPoint[] = data.dates.map(date => {
+  const chartData: ChartPoint[] = data.dates.slice(-10).map(date => {
     const point: ChartPoint = { date }
     for (const site of data.sites) {
       const match = data.points.find(p => p.date === date && p.site === site)
@@ -101,10 +101,13 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              tick={{ fill: '#64748b', fontSize: 11 }}
+              tick={{ fill: '#64748b', fontSize: 10 }}
               axisLine={{ stroke: '#334155' }}
               tickLine={false}
-              interval="preserveStartEnd"
+              interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
             <YAxis
               tickFormatter={(v: number) => `${v}%`}
