@@ -11,30 +11,24 @@ async function callLambda(method: string, body: object) {
       'x-api-key': API_KEY,
     },
     body: JSON.stringify(body),
-    next: { revalidate: 300 } // 5 minutes
+    cache: 'no-store',
   })
 
   const text = await res.text()
-  if (!res.ok) throw new Error(`Lambda error: ${res.status} — ${text}`)
+  if (!res.ok) throw new Error(`Lambda error: ${res.status} - ${text}`)
   return JSON.parse(text)
 }
 
-export async function POST(req: NextRequest) {
+async function handle(req: NextRequest, method: string) {
   try {
     const body = await req.json()
-    const data = await callLambda('POST', body)
+    const data = await callLambda(method, body)
     return NextResponse.json(data)
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
 
-export async function DELETE(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const data = await callLambda('DELETE', body)
-    return NextResponse.json(data)
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
-  }
-}
+export async function POST(req: NextRequest) { return handle(req, 'POST') }
+export async function DELETE(req: NextRequest) { return handle(req, 'DELETE') }
+export async function PATCH(req: NextRequest) { return handle(req, 'PATCH') }

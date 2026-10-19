@@ -45,7 +45,7 @@ export default async function Dashboard() {
 
   // Mismatch Reports — unacknowledged variances
   const reportCompsData = reportCompsResult.status === 'fulfilled' ? reportCompsResult.value : null
-  const acknowledgedIds = new Set((reportCompsData?.acknowledged ?? []).map(a => a.ack_row_id))
+  const acknowledgedIds = new Set((reportCompsData?.acknowledged ?? []).filter(a => a.is_acknowledged !== false).map(a => a.ack_row_id))
   const cutoff = new Date()
   cutoff.setHours(0, 0, 0, 0)
   cutoff.setDate(cutoff.getDate() - 7)

@@ -8,12 +8,18 @@ export interface ReportCompRow {
   system: string
   gameType: string
   handleVariance: number | null
+  sysHandle: number | null
+  dwHandle: number | null
 }
 
 export interface AcknowledgedReportComp {
   ack_row_id: string
   acknowledged_at?: string
   acknowledged_by?: string
+  is_acknowledged?: boolean
+  notes?: string | null
+  notes_updated_at?: string | null
+  notes_updated_by?: string | null
 }
 
 function parseCSVLine(line: string): string[] {
@@ -31,10 +37,6 @@ function parseCSVLine(line: string): string[] {
 }
 
 async function getToken(): Promise<{ token: string; siteId: string }> {
-  console.log('[fetchReportComps] TABLEAU_HOST:', process.env.TABLEAU_HOST)
-  console.log('[fetchReportComps] TABLEAU_PAT_NAME:', process.env.TABLEAU_PAT_NAME)
-  console.log('[fetchReportComps] TABLEAU_REPORT_COMPS_VIEW_ID:', process.env.TABLEAU_REPORT_COMPS_VIEW_ID)
-  console.log('[fetchReportComps] EXACTA_API_BASE_URL:', process.env.EXACTA_API_BASE_URL)
   const res = await fetch(
     `${process.env.TABLEAU_HOST}/api/${API_VERSION}/auth/signin`,
     {
@@ -52,6 +54,16 @@ async function getToken(): Promise<{ token: string; siteId: string }> {
   const data = await res.json()
   if (!data.credentials) throw new Error(`Signin failed: ${JSON.stringify(data)}`)
   return { token: data.credentials.token, siteId: data.credentials.site.id }
+}
+
+function toNum(v?: string): number | null {
+  const s = (v ?? '').replace(/[$,]/g, '').trim()
+  return s !== '' && s !== '-' ? parseFloat(s) : null
+}
+
+function toIsoDate(d: string): string {
+  const dt = new Date(d)
+  return isNaN(dt.getTime()) ? d : dt.toISOString().slice(0, 10)
 }
 
 export async function fetchReportComps(): Promise<{
@@ -75,34 +87,59 @@ export async function fetchReportComps(): Promise<{
   ])
 
   if (!tableauRes.ok) throw new Error(`Tableau returned ${tableauRes.status}: ${await tableauRes.text()}`)
+    
 
   const csv = await tableauRes.text()
-  const lines = csv.trim().split('\n').slice(1).filter(l => l.trim())
-  console.log('Report Comps CSV rows:', lines.length)
+  const allLines = csv.trim().split('\n').filter(l => l.trim())
 
-  const rows: ReportCompRow[] = []
-  let lastDate = ''
-
-  for (const line of lines) {
-    const cols = parseCSVLine(line)
-
-    const rawDate = cols[5]?.trim() ?? ''
-    if (rawDate !== '') lastDate = rawDate
-    const date = lastDate
-
-    const rawVariance = cols[7]?.replace(/[$,]/g, '').trim() ?? ''
-    const handleVariance = rawVariance !== '' && rawVariance !== '-' ? parseFloat(rawVariance) : null
-
-    rows.push({
-      ackRowId: cols[1]?.trim() ?? '',
-      date,
-      market: cols[4]?.trim() ?? '',
-      enterprise: cols[2]?.trim() ?? '',
-      system: cols[6]?.trim() ?? '',
-      gameType: cols[3]?.trim() ?? '',
-      handleVariance,
-    })
+  if (allLines.length === 0) {
+    console.log('[Report Comps] Tableau returned no data')
+    return { rows: [], acknowledged: [] }
   }
+
+  // Read columns by header name so column order changes in Tableau won't break parsing
+  const headers = parseCSVLine(allLines[0])
+  const idx = (name: string) => headers.indexOf(name)
+  const iEnt = idx('Enterprise')
+  const iGame = idx('Game Type')
+  const iMkt = idx('Market')
+  const iDate = idx('Month, Day, Year of Date')
+  const iSys = idx('System')
+  const iName = idx('Measure Names')
+  const iVal = idx('Measure Values')
+
+  // Pivot Measure Names/Values (one CSV row per measure) into one row per report
+  const grouped = new Map<string, ReportCompRow>()
+  for (const line of allLines.slice(1)) {
+    const c = parseCSVLine(line)
+    const date = c[iDate] ?? ''
+    if (!date) continue
+
+    const enterprise = c[iEnt] ?? ''
+    const gameType = c[iGame] ?? ''
+    const market = c[iMkt] ?? ''
+    const system = c[iSys] ?? ''
+
+    // Same format as the old Ack Row ID so existing acknowledgements still match
+    const ackRowId = `${toIsoDate(date)}-${market}-${enterprise}-${system}-${gameType}`
+
+    if (!grouped.has(ackRowId)) {
+      grouped.set(ackRowId, {
+        ackRowId, date, market, enterprise, system, gameType,
+        handleVariance: null, sysHandle: null, dwHandle: null,
+      })
+    }
+
+    const row = grouped.get(ackRowId)!
+    const measure = c[iName]
+    const value = toNum(c[iVal])
+    if (measure === 'Handle Variance') row.handleVariance = value
+    else if (measure === 'Sys Handle') row.sysHandle = value
+    else if (measure === 'DW Handle') row.dwHandle = value
+  }
+
+  const rows = Array.from(grouped.values())
+  console.log('[Report Comps] rows after pivot:', rows.length)
 
   let acknowledged: AcknowledgedReportComp[] = []
   if (acknowledgedRes.ok) {
@@ -111,8 +148,5 @@ export async function fetchReportComps(): Promise<{
     acknowledged = ackBody.acknowledged ?? []
   }
 
-  return {
-    rows: rows.filter(r => r.date !== ''),
-    acknowledged,
-  }
+  return { rows, acknowledged }
 }
