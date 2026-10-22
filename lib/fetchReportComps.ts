@@ -133,9 +133,10 @@ export async function fetchReportComps(): Promise<{
     const row = grouped.get(ackRowId)!
     const measure = c[iName]
     const value = toNum(c[iVal])
-    if (measure === 'Handle Variance') row.handleVariance = value
-    else if (measure === 'Sys Handle') row.sysHandle = value
-    else if (measure === 'DW Handle') row.dwHandle = value
+    const m = (measure ?? '').toLowerCase()
+    if (m.includes('variance')) row.handleVariance = value
+    else if (m.includes('dw')) row.dwHandle = value
+    else if (m.includes('sys')) row.sysHandle = value
   }
 
   const rows = Array.from(grouped.values())

@@ -134,6 +134,23 @@ export const tabs: Tab[] = [
     notes: '',
     lastUpdated: '',
   },
+  {
+    slug: 'bet-type-pvalues',
+    icon: '🎲',
+    title: 'Roulette P Values',
+    status: 'ready',
+    goal: 'Roulette bet types paying out further from theoretical than chance would explain.',
+    dataSources: [
+      { label: 'Primary Source', value: 'Nxt Roulette (clientwagers, roulettegamehistory)' },
+      { label: 'Availability', value: '✅ Available' },
+      { label: 'Owner', value: '-' },
+      { label: 'Priority', value: '-' },
+    ],
+    requirements: [],
+    displayDetails: 'Heatmap of facilities x bet types colored by z-score, with Benjamini-Hochberg significant cells ringed. Toggles for 7d / 30d / all time and dollar vs hit-rate tests.',
+    notes: '',
+    lastUpdated: '',
+  },
   // {
   //   slug: 'payout-pct-std-deviations',
   //   icon: '📉',
