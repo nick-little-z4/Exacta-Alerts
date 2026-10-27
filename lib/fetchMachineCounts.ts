@@ -81,37 +81,22 @@ async function getToken(): Promise<{ token: string; siteId: string }> {
 
 async function getLastRefreshTime(token: string, siteId: string): Promise<string | null> {
   try {
+    const headers = { 'X-Tableau-Auth': token, 'Accept': 'application/json' }
     const viewRes = await fetch(
       `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_MACHINE_COUNT_VIEW_ID}`,
-      { headers: { 'X-Tableau-Auth': token, 'Accept': 'application/json' } }
+      { headers }
     )
-    console.log('[getLastRefreshTime] viewRes status:', viewRes.status)
-    if (!viewRes.ok) {
-      console.log('[getLastRefreshTime] viewRes body:', await viewRes.text())
-      return null
-    }
-    const viewData = await viewRes.json()
-    console.log('[getLastRefreshTime] viewData:', JSON.stringify(viewData))
-    const workbookId = viewData.view?.workbook?.id
-    if (!workbookId) {
-      console.log('[getLastRefreshTime] no workbookId found')
-      return null
-    }
+    if (!viewRes.ok) return null
+    const workbookId = (await viewRes.json()).view?.workbook?.id
+    if (!workbookId) return null
 
     const wbRes = await fetch(
       `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/workbooks/${workbookId}`,
-      { headers: { 'X-Tableau-Auth': token, 'Accept': 'application/json' } }
+      { headers }
     )
-    console.log('[getLastRefreshTime] wbRes status:', wbRes.status)
-    if (!wbRes.ok) {
-      console.log('[getLastRefreshTime] wbRes body:', await wbRes.text())
-      return null
-    }
-    const wbData = await wbRes.json()
-    console.log('[getLastRefreshTime] wbData:', JSON.stringify(wbData))
-    return wbData.workbook?.updatedAt ?? null
-  } catch (err) {
-    console.log('[getLastRefreshTime] error:', err)
+    if (!wbRes.ok) return null
+    return (await wbRes.json()).workbook?.updatedAt ?? null
+  } catch {
     return null
   }
 }
@@ -130,32 +115,45 @@ export async function fetchMachineCounts(): Promise<MachineCountsData> {
   if (!dataRes.ok) throw new Error(`Tableau returned ${dataRes.status}: ${await dataRes.text()}`)
 
   const csv = await dataRes.text()
-  // Columns: Enterprise, Location (site code), Exacta Alerts Machine Count
-  const lines = csv.trim().split('\n').slice(1).filter(l => l.trim())
+  const allLines = csv.trim().split('\n').filter(l => l.trim())
+  if (allLines.length === 0) return { rows: [], months: ['Current'], lastRefreshed }
 
-  const rows: MachineRow[] = []
+  // Columns (by name): Country, Date, Enterprise, Location, Market, Machine Days
+  const headers = parseCSVLine(allLines[0])
+  const idx = (name: string) => headers.indexOf(name)
+  const iDate = idx('Date'), iEnt = idx('Enterprise'), iLoc = idx('Location')
+  const iMkt = idx('Market'), iVal = idx('Machine Days')
 
-  for (const line of lines) {
-    const cols = parseCSVLine(line)
-    if (cols.length < 3) continue
-    const enterprise = cols[0]
-    const site = cols[1]
-    const count = parseInt(cols[2].replace(/,/g, ''), 10)
+  // Keep each site's most recent day. Skip Tableau total rows (Date = "All").
+  const latest = new Map<string, { time: number; row: MachineRow }>()
 
-    // Skip unknown/null sites
+  for (const line of allLines.slice(1)) {
+    const c = parseCSVLine(line)
+    const site = c[iLoc] ?? ''
+    const enterprise = c[iEnt] ?? ''
+    const dateStr = c[iDate] ?? ''
     if (!site || site === 'Unknown' || !enterprise) continue
-    // Skip sites with no market mapping
-    const market = SITE_TO_MARKET[site]
+    if (!dateStr || dateStr.toLowerCase() === 'all') continue
+
+    const time = new Date(dateStr).getTime()
+    if (isNaN(time)) continue
+
+    const market = c[iMkt] || SITE_TO_MARKET[site]
     if (!market) continue
 
-    rows.push({
-      enterprise,
-      facility: site,
-      site,
-      market,
-      counts: [isNaN(count) ? null : count],
-    })
+    const raw = parseFloat((c[iVal] ?? '').replace(/,/g, ''))
+    const count = isNaN(raw) ? null : Math.round(raw)
+
+    const existing = latest.get(site)
+    if (!existing || time > existing.time) {
+      latest.set(site, {
+        time,
+        row: { enterprise, facility: site, site, market, counts: [count] },
+      })
+    }
   }
+
+  const rows = Array.from(latest.values()).map(v => v.row)
 
   return {
     rows,
