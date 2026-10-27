@@ -162,6 +162,49 @@ export default function BetTypePvaluesClient({ data }: { data: BetTypePvalues })
         </span>
       </header>
 
+      <details className="group rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+        <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+          <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+          How to read this page
+        </summary>
+        <div className="mt-3 space-y-3 leading-relaxed">
+          <div>
+            <p className="font-semibold text-slate-200">What this page checks</p>
+            <p>Every roulette bet type (red/black, a single number, a dozen, and so on) is designed to pay back a set percentage over time. This page checks, for each facility and bet type, whether players are winning noticeably <span className="font-semibold">more or less than the game is designed to pay</span>.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">How to read the grid</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Each square is one facility and one bet type.</li>
+              <li><span className="text-rose-400 font-semibold">Rose</span>: players are ahead of what the game should pay.</li>
+              <li><span className="text-sky-400 font-semibold">Blue</span>: the house is ahead of what it should be.</li>
+              <li>Faint or no color: results are in the normal range.</li>
+              <li><span className="text-orange-400 font-semibold">Orange ring</span>: the difference is big enough that it's very unlikely to be luck. These are the ones that matter.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">Why some colored squares don&apos;t matter</p>
+            <p>Roulette is random, so with this many squares, a few will always look unusual just by chance. The page accounts for that, and only squares with an <span className="text-orange-400 font-semibold">orange ring</span> hold up after that check. Those are what count toward the dashboard alert and Slack.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">The toggles</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="font-semibold">7d / 30d / All time</span>: how far back to look. Alerts use the last 7 days.</li>
+              <li><span className="font-semibold">Dollar test</span>: compares money won to what should have been won.</li>
+              <li><span className="font-semibold">Hit-rate test</span>: compares how often a bet wins to how often it should.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">What to do</p>
+            <p>If a square has an orange ring, click it for details and flag the facility and bet type for review, since it may point to a wheel, paytable, or game setting issue. Gray squares had too little play to test yet.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">How often it updates</p>
+            <p>Once a day. The "Updated" time at the top shows the last refresh.</p>
+          </div>
+        </div>
+      </details>
+
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Seg value={win} options={WINDOWS} onChange={(v) => { setWin(v); setPinned(null); }} />
         <Seg value={met} options={METRICS} onChange={setMet} />

@@ -1,10 +1,13 @@
+import Link from 'next/link'
 import TabCard from '@/components/TabCard'
+import HomeLive from '@/components/HomeLive'
 import { tabs } from '@/lib/tabs'
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchManualHandicappingWins } from '@/lib/fetchManualHandicappingWins'
 import { fetchAcknowledgedHandicappingWinsNew as fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWinsNew'
 import { fetchReportComps } from '@/lib/fetchReportComps'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
+import { fetchBetTypePvalues, significantCount } from '@/lib/fetchBetTypePvalues'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,21 +17,22 @@ function normalizeCheckdate(cd: string): string {
 
 export default async function Dashboard() {
 
-  // Fetch all badge data in parallel — failures are silent
-  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult] = await Promise.allSettled([
+  // Fetch all badge data in parallel: failures are silent
+  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult, pvalResult] = await Promise.allSettled([
     fetchLowPools(),
     fetchNPrizes(),
     fetchManualHandicappingWins(),
     fetchReportComps(),
     fetchAcknowledgedHandicappingWins(),
+    fetchBetTypePvalues(),
   ])
 
-  // Low pools — unacknowledged criticals
+  // Low pools: unacknowledged criticals
   const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value : null
   const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
   const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
 
-  // Manual Handicapping Wins — sites with payout >= 100% and net win >= $100, minus acknowledged
+  // Manual Handicapping Wins: sites with payout >= 100% and net win >= $100, minus acknowledged
   const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value : null
   const mhwAcknowledged = mhwAckResult.status === 'fulfilled' ? mhwAckResult.value : []
   const mhwAckKeys = new Set(
@@ -43,7 +47,7 @@ export default async function Dashboard() {
     return !mhwAckKeys.has(key)
   }).length
 
-  // Mismatch Reports — unacknowledged variances
+  // Mismatch Reports: unacknowledged variances
   const reportCompsData = reportCompsResult.status === 'fulfilled' ? reportCompsResult.value : null
   const acknowledgedIds = new Set((reportCompsData?.acknowledged ?? []).filter(a => a.is_acknowledged !== false).map(a => a.ack_row_id))
   const cutoff = new Date()
@@ -61,8 +65,12 @@ export default async function Dashboard() {
   const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
   const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10).length
 
+  // Roulette P Values: BH-significant cells in the past 7 days
+  const pvalData = pvalResult.status === 'fulfilled' ? pvalResult.value : null
+  const significantPvals = pvalData ? significantCount(pvalData, '7d') : 0
+
   // Summary bar totals
-  const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes
+  const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes + significantPvals
   const hasAlerts = totalAlerts > 0
 
   // Badge map by slug
@@ -71,7 +79,20 @@ export default async function Dashboard() {
     'manual-handicapping-wins': { count: flaggedMHW, color: 'red' },
     'daily-report-mismatch': { count: unacknowledgedMismatches, color: 'amber' },
     'n-prizes': { count: highNPrizes, color: 'amber' },
+    'bet-type-pvalues': { count: significantPvals, color: 'red' },
   }
+
+  // Summary bar chips (each links to its tab)
+  const chips = [
+    { slug: 'low-pools', label: 'Critical Pools', count: unacknowledgedCriticals, tone: 'rose' },
+    { slug: 'manual-handicapping-wins', label: 'MH Wins Flagged', count: flaggedMHW, tone: 'amber' },
+    { slug: 'daily-report-mismatch', label: 'Mismatches', count: unacknowledgedMismatches, tone: 'amber' },
+    { slug: 'n-prizes', label: 'N Prizes ≥10', count: highNPrizes, tone: 'amber' },
+    { slug: 'bet-type-pvalues', label: 'Roulette P Values', count: significantPvals, tone: 'rose' },
+  ].filter(c => c.count > 0)
+
+  // Alerts first: tabs with active badges move to the top, highest count first
+  const sortedTabs = [...tabs].sort((a, b) => (badges[b.slug]?.count ?? 0) - (badges[a.slug]?.count ?? 0))
 
   return (
     <div className="min-h-screen bg-[#131629] py-10 px-6">
@@ -96,35 +117,19 @@ export default async function Dashboard() {
                 {hasAlerts ? `⚠️ ${totalAlerts} Alert${totalAlerts !== 1 ? 's' : ''} Require Attention` : '✅ All Clear'}
               </span>
             </div>
-            <div className="flex flex-wrap gap-4">
-              {unacknowledgedCriticals > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" />
-                  <span className="text-slate-500">Critical Pools</span>
-                  <span className="font-bold text-rose-400">{unacknowledgedCriticals}</span>
-                </div>
-              )}
-              {flaggedMHW > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-slate-500">MH Wins Flagged</span>
-                  <span className="font-bold text-amber-400">{flaggedMHW}</span>
-                </div>
-              )}
-              {unacknowledgedMismatches > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-slate-500">Mismatches</span>
-                  <span className="font-bold text-amber-400">{unacknowledgedMismatches}</span>
-                </div>
-              )}
-              {highNPrizes > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                  <span className="text-slate-500">N Prizes ≥10</span>
-                  <span className="font-bold text-amber-400">{highNPrizes}</span>
-                </div>
-              )}
+            <div className="flex flex-wrap gap-2">
+              {chips.map(c => (
+                <Link
+                  key={c.slug}
+                  href={`/tabs/${c.slug}`}
+                  className="flex items-center gap-1.5 text-xs text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 hover:border-slate-500 hover:bg-slate-800/60 transition-colors"
+                >
+                  <span className={`w-2 h-2 rounded-full inline-block ${c.tone === 'rose' ? 'bg-rose-400' : 'bg-amber-400'}`} />
+                  <span className="text-slate-400">{c.label}</span>
+                  <span className={`font-bold ${c.tone === 'rose' ? 'text-rose-400' : 'text-amber-400'}`}>{c.count}</span>
+                  <span className="text-slate-600">→</span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -133,7 +138,7 @@ export default async function Dashboard() {
           Dashboard Tabs
         </p>
         <div className="grid grid-cols-2 gap-4">
-          {tabs.map((tab) => (
+          {sortedTabs.map((tab) => (
             <TabCard
               key={tab.slug}
               tab={tab}
@@ -142,6 +147,7 @@ export default async function Dashboard() {
           ))}
         </div>
 
+        <HomeLive totalAlerts={totalAlerts} />
       </div>
     </div>
   )

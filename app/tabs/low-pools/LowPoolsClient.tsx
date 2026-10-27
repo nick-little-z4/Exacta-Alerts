@@ -289,7 +289,7 @@ function ReviewedTable({
                 <td className="px-4 py-2.5 text-slate-400 tabular-nums">{row.denomination}</td>
                 <td className="px-4 py-2.5 text-slate-300 tabular-nums">{Number(row.poolbalance).toLocaleString()}</td>
                 <td className="px-4 py-2.5"><SeverityBadge pct={row.poolpercentage} /></td>
-                <td className="px-4 py-2.5 text-xs text-slate-500">{meta?.acknowledged_at ? new Date(meta.acknowledged_at).toLocaleString() : '—'}</td>
+                <td className="px-4 py-2.5 text-xs text-slate-500">{meta?.acknowledged_at ? new Date(meta.acknowledged_at).toLocaleString() : '-'}</td>
                 <td className="px-4 py-2.5 text-xs text-slate-400 max-w-[200px]">
                   {meta?.notes
                     ? <span className="truncate block" title={meta.notes}>{meta.notes}</span>
@@ -483,6 +483,147 @@ export default function LowPoolsClient({
                 ? 'Last refresh of the Tableau roulette data source.'
                 : 'Reference last update from pool monitor daily table.'}
             </span>
+          </div>
+        )
+      })()}
+
+      {/* Plain-English summary and reading guide (Pool Monitor view only) */}
+      {view === 'pools' && (() => {
+        const crit = activeCriticals.length + newCriticals.length
+        const newCrit = newCriticals.length
+        const watch = warnings.length
+        const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
+        const tone =
+          crit > 0 ? 'bg-rose-950/30 border-rose-800/60 text-rose-200'
+          : watch > 0 ? 'bg-amber-950/20 border-amber-800/50 text-amber-200'
+          : 'bg-emerald-950/20 border-emerald-800/50 text-emerald-200'
+
+        return (
+          <div className="mb-6 space-y-3">
+            <div className={`rounded-lg border px-5 py-4 text-sm ${tone}`}>
+              {crit > 0 ? (
+                <>
+                  <span className="font-bold">
+                    {crit} {plural(crit, 'game is', 'games are')} running low on prize money.
+                  </span>{' '}
+                  {newCrit > 0 && <>{newCrit} of them dropped low for the first time today. </>}
+                  {watch > 0 && <>{watch} more {plural(watch, 'is', 'are')} getting close.</>}
+                </>
+              ) : watch > 0 ? (
+                <>
+                  <span className="font-bold">No games are critically low.</span>{' '}
+                  {watch} {plural(watch, 'game is', 'games are')} getting close and being watched.
+                </>
+              ) : (
+                <span className="font-bold">All games have healthy prize pools.</span>
+              )}
+            </div>
+
+            <details className="group rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+              <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+                <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+                How to read this page
+              </summary>
+              <div className="mt-3 space-y-3 leading-relaxed">
+                <div>
+                  <p className="font-semibold text-slate-200">What this page checks</p>
+                  <p>Every game has a prize pool: money set aside to pay out wins. When players win more than usual, the pool shrinks. This page flags games whose pool has dropped too far below where it should be.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-200">What the sections mean</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><span className="text-rose-400 font-semibold">Critical</span>: the pool is below 60% of where it should be. Someone should look at it.</li>
+                    <li><span className="text-amber-400 font-semibold">Watchlist</span>: the pool is between 60% and 70%. Not urgent, but worth keeping an eye on.</li>
+                    <li><span className="text-emerald-400 font-semibold">Reviewed</span>: someone has already looked into it and left a note explaining why.</li>
+                    <li><span className="text-sky-400 font-semibold">New Today</span>: games that showed up for the first time today.</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-200">What to do</p>
+                  <p>Open a critical game, check the notes, and click <span className="font-semibold">Acknowledge</span> once you know the reason (for example, a player had a lucky streak). Pools usually recover on their own as people keep playing.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-200">How often it updates</p>
+                  <p>Every few hours. The "Updated" time above shows the last refresh.</p>
+                </div>
+              </div>
+            </details>
+
+            {(() => {
+              const pct = (v: unknown) => {
+                const n = parseFloat(String(v ?? ''))
+                return isNaN(n) ? null : n
+              }
+              const fmtPct = (v: unknown) => {
+                const n = pct(v)
+                return n === null ? '-' : `${(n * 100).toFixed(1)}%`
+              }
+              const nearWatch = (data.all_pools ?? [])
+                .filter(r => { const n = pct(r.poolpercentage); return n !== null && n >= 0.70 && n < 0.75 })
+                .sort((a, b) => (pct(a.poolpercentage) ?? 0) - (pct(b.poolpercentage) ?? 0))
+              const dayAgo = Date.now() - 24 * 60 * 60 * 1000
+              const recentReviews = acknowledgedMeta
+                .filter(a => a.acknowledged_at && new Date(a.acknowledged_at).getTime() >= dayAgo)
+                .sort((a, b) => new Date(b.acknowledged_at!).getTime() - new Date(a.acknowledged_at!).getTime())
+
+              const groups: { title: string; tone: string; empty: string; items: { key: string; text: string; detail: string }[] }[] = [
+                {
+                  title: 'Dropped critical today',
+                  tone: 'text-rose-400',
+                  empty: 'No games fell below 60% today.',
+                  items: newCriticals.map(r => ({ key: rowKey(r), text: `${r.site} ${r.mathname} (${r.denomination})`, detail: fmtPct(r.poolpercentage) })),
+                },
+                {
+                  title: 'Close to the Watchlist (70% to 75%)',
+                  tone: 'text-amber-400',
+                  empty: 'Nothing is close to the Watchlist.',
+                  items: nearWatch.map(r => ({ key: rowKey(r), text: `${r.site} ${r.mathname} (${r.denomination})`, detail: fmtPct(r.poolpercentage) })),
+                },
+                {
+                  title: 'New games today',
+                  tone: 'text-sky-400',
+                  empty: 'No new games showed up today.',
+                  items: newEntries.map(r => ({ key: rowKey(r), text: `${r.site} ${r.mathname} (${r.denomination})`, detail: fmtPct(r.poolpercentage) })),
+                },
+                {
+                  title: 'Reviewed in the last 24 hours',
+                  tone: 'text-emerald-400',
+                  empty: 'No reviews in the last 24 hours.',
+                  items: recentReviews.map(a => ({
+                    key: rowKey(a),
+                    text: `${a.site} ${a.mathname} (${a.denomination})`,
+                    detail: `${a.acknowledged_by ?? 'staff'}${a.notes ? `: ${a.notes}` : ''}`,
+                  })),
+                },
+              ]
+
+              return (
+                <div className="rounded-lg border border-slate-800 bg-[#13152a] px-5 py-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Recent activity</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {groups.map(g => (
+                      <div key={g.title}>
+                        <p className={`text-xs font-semibold mb-1.5 ${g.tone}`}>
+                          {g.title} <span className="text-slate-500">({g.items.length})</span>
+                        </p>
+                        {g.items.length === 0 ? (
+                          <p className="text-xs text-slate-500">{g.empty}</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {g.items.slice(0, 5).map(it => (
+                              <li key={it.key} className="flex items-baseline justify-between gap-3 text-xs">
+                                <span className="text-slate-300 truncate">{it.text}</span>
+                                <span className="text-slate-400 tabular-nums shrink-0 max-w-[45%] truncate">{it.detail}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )
       })()}

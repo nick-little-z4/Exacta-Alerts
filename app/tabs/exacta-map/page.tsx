@@ -166,7 +166,7 @@ export default async function ExactaMapPage() {
       lookupBySite[f.siteCode] = f
     }
 
-    // Inner join — only sites in both machine counts AND facility lookup AND with coords
+    // Inner join: only sites in both machine counts AND facility lookup AND with coords
     const joined = rows
       .filter(row => row.site && lookupBySite[row.site] && SITE_COORDS[row.site])
       .map(row => {
@@ -185,7 +185,7 @@ export default async function ExactaMapPage() {
         }
       })
 
-    // Deduplicate by site code — keep highest machine count
+    // Deduplicate by site code: keep highest machine count
     const siteMap = new Map<string, MapFacility>()
     for (const f of joined) {
       const existing = siteMap.get(f.siteCode)
@@ -222,6 +222,34 @@ export default async function ExactaMapPage() {
               Last updated from Tableau Data Source.
             </span>
           </div>
+          <details className="group mt-4 rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+            <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+              <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+              How to read this page
+            </summary>
+            <div className="mt-3 space-y-3 leading-relaxed">
+              <div>
+                <p className="font-semibold text-slate-200">What this page shows</p>
+                <p>A map of every Exacta facility. Each dot is one site.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">How to read the dots</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><span className="font-semibold">Color</span>: which market the site belongs to.</li>
+                  <li><span className="font-semibold">Size</span>: how many machines are active there. Bigger means more machines.</li>
+                  <li>Sites in the same city are spread slightly apart so they don&apos;t stack on top of each other.</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">How to use it</p>
+                <p>Click a dot to see that site&apos;s details. Machine counts use the same current numbers as the Machine Counts page.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">How often it updates</p>
+                <p>From Tableau on its refresh schedule. The &quot;Updated&quot; time shows the last refresh.</p>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">

@@ -125,6 +125,40 @@ export default function ReportCompsClient({
         </div>
       )}
 
+      <details className="group mb-6 rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+        <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+          <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+          How to read this page
+        </summary>
+        <div className="mt-3 space-y-3 leading-relaxed">
+          <div>
+            <p className="font-semibold text-slate-200">What this page checks</p>
+            <p>Each day, the amount bet (handle) at a facility is recorded in two places: the facility&apos;s own system and our data warehouse. These should match. This page lists the days where they <span className="font-semibold">don&apos;t</span>.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">What the columns mean</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="font-semibold">DW Handle</span>: the amount bet according to our data warehouse.</li>
+              <li><span className="font-semibold">Sys Handle</span>: the amount bet according to the facility&apos;s system.</li>
+              <li><span className="font-semibold">Handle Variance</span>: the difference between the two. Anything other than zero is a mismatch.</li>
+              <li><span className="font-semibold">Market / Enterprise / System / Game Type</span>: where the report came from.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">Why it matters</p>
+            <p>A mismatch usually means data was missed, delayed, or counted twice somewhere, which can make daily reports and revenue numbers wrong. A missing Sys Handle often means the facility&apos;s side didn&apos;t report that day.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">What to do</p>
+            <p>Look into the mismatch, add a <span className="font-semibold">note</span> so the team knows what you found, and check <span className="font-semibold">Ack</span> once it&apos;s resolved or explained. Acknowledged rows stop counting as an alert on the dashboard. Notes stay with the row even after it&apos;s acknowledged.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">Date range</p>
+            <p>Use the Latest / 3 Days / 7 Days selector to choose how far back to look. No rows means everything matched.</p>
+          </div>
+        </div>
+      </details>
+
       <div className="bg-[#13152a] border border-slate-800 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>

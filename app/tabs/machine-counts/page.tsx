@@ -151,6 +151,30 @@ export default async function MachineCountsPage() {
                   Last updated from Tableau Data Source.
                 </span>
               </div>
+          <details className="group mt-4 rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+            <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+              <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+              How to read this page
+            </summary>
+            <div className="mt-3 space-y-3 leading-relaxed">
+              <div>
+                <p className="font-semibold text-slate-200">What this page shows</p>
+                <p>How many game machines are currently active at each facility, grouped by market (state or region).</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">How the count works</p>
+                <p>Each facility&apos;s count comes from its most recent day of activity, so it reflects what&apos;s on the floor now, not a monthly total. A facility that stopped reporting won&apos;t show up.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">The map</p>
+                <p>Each bubble is a market. Bigger bubbles mean more machines, and colors match the market colors used across the dashboard.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-200">How often it updates</p>
+                <p>From Tableau on its refresh schedule. The &quot;Updated&quot; time shows the last refresh.</p>
+              </div>
+            </div>
+          </details>
         </div>
 
         {/* Stat Cards */}
@@ -207,7 +231,7 @@ export default async function MachineCountsPage() {
                         </div>
                       </td>
                       <td className="text-right px-4 py-2.5 text-slate-300 tabular-nums">
-                        {total > 0 ? total.toLocaleString() : '—'}
+                        {total > 0 ? total.toLocaleString() : '-'}
                       </td>
                     </tr>
                   )

@@ -52,7 +52,7 @@ export default function ZeroTakeoutMonitorClient({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            ECS
+            HHR
           </button>
           <button
             onClick={() => setTab('etg')}
@@ -62,7 +62,7 @@ export default function ZeroTakeoutMonitorClient({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Roulette
+            ETG (Roulette)
           </button>
         </div>
 
@@ -82,6 +82,42 @@ export default function ZeroTakeoutMonitorClient({
           </div>
         )}
       </div>
+
+      <details className="group mb-6 rounded-lg border border-slate-800 bg-[#13152a] px-5 py-3 text-sm text-slate-300">
+        <summary className="cursor-pointer select-none font-semibold text-slate-200 list-none flex items-center gap-2">
+          <span className="text-slate-500 group-open:rotate-90 transition-transform">▶</span>
+          How to read this page
+        </summary>
+        <div className="mt-3 space-y-3 leading-relaxed">
+          <div>
+            <p className="font-semibold text-slate-200">What this page checks</p>
+            <p>Every bet a player makes should give the house a small cut, called <span className="font-semibold">takeout</span>. This page looks for bets from the last 7 days where money was bet but the house took <span className="font-semibold">nothing</span>.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">Why that matters</p>
+            <p>A bet with zero takeout shouldn't normally happen. It usually means a game's settings or math are misconfigured, and the house may be missing revenue every time that game is played.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">The two tabs</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="font-semibold">HHR</span>: historical horse racing slot-style games.</li>
+              <li><span className="font-semibold">ETG (Roulette)</span>: electronic roulette and table games.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">What the columns mean</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><span className="font-semibold">Occurrences</span>: how many zero-takeout bets were found for that game.</li>
+              <li><span className="font-semibold">Total Wager</span>: how much money was bet on those bets.</li>
+              <li><span className="font-semibold">First Seen / Last Seen</span>: when it started and the most recent time it happened. A recent Last Seen means it's still happening.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-200">What to do</p>
+            <p>A green checkmark means nothing was found, which is the normal state. If a game shows up, flag it for review so its configuration can be checked.</p>
+          </div>
+        </div>
+      </details>
 
       {active.checkdate && (
         <div className="mb-6 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit relative group cursor-help">
@@ -160,9 +196,9 @@ export default function ZeroTakeoutMonitorClient({
               {sortedEtg.map((row: ZeroTakeoutEtgRow, i) => (
                 <tr key={i} className="border-t border-slate-800 hover:bg-[#1a1d35] transition-colors">
                   <td className="px-4 py-2.5 font-semibold text-orange-400">{row.schema_name}</td>
-                  <td className="px-4 py-2.5 text-slate-300">{row.site_code ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-slate-300 font-mono text-xs">{row.definition_id ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-right text-slate-300">{row.denomination ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-300">{row.site_code ?? '-'}</td>
+                  <td className="px-4 py-2.5 text-slate-300 font-mono text-xs">{row.definition_id ?? '-'}</td>
+                  <td className="px-4 py-2.5 text-right text-slate-300">{row.denomination ?? '-'}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-900/50 text-rose-300">
                       {row.occurrences}
