@@ -25,28 +25,6 @@ function SeverityBadge({ pct }: { pct: string }) {
   )
 }
 
-function PageInfoModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#13152a] border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sky-400 text-lg">ℹ️</span>
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-widest">About Low Pools</h2>
-          </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none">✕</button>
-        </div>
-        <div className="text-sm text-slate-400 space-y-3">
-          <p className="text-slate-500 italic">Information coming soon.</p>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="text-xs px-4 py-2 rounded border border-slate-600 text-slate-400 hover:border-sky-500 hover:text-sky-400 transition-all">Close</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function RowInfoModal({
   row, onClose, onSaveNotes,
 }: {
@@ -342,7 +320,6 @@ export default function LowPoolsClient({
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [showPageInfo, setShowPageInfo] = useState(false)
   const [infoRow, setInfoRow] = useState<PoolRow | null>(null)
   const [pendingRow, setPendingRow] = useState<PoolRow | null>(null)
 
@@ -443,7 +420,6 @@ export default function LowPoolsClient({
 
   return (
     <>
-      {showPageInfo && <PageInfoModal onClose={() => setShowPageInfo(false)} />}
       {infoRow && (
         <RowInfoModal
           row={infoRow}
@@ -555,13 +531,6 @@ export default function LowPoolsClient({
           </button>
         </div>
 
-        <button
-          onClick={() => setShowPageInfo(true)}
-          title="About this page"
-          className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-700 text-slate-500 hover:border-sky-500 hover:text-sky-400 hover:bg-sky-950/30 transition-all text-sm font-bold"
-        >
-          i
-        </button>
       </div>
 
       {/* Roulette view */}
