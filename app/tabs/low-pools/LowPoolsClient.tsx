@@ -561,10 +561,6 @@ export default function LowPoolsClient({
               const nearWatch = (data.all_pools ?? [])
                 .filter(r => { const n = pct(r.poolpercentage); return n !== null && n >= 0.70 && n < 0.75 })
                 .sort((a, b) => (pct(a.poolpercentage) ?? 0) - (pct(b.poolpercentage) ?? 0))
-              const dayAgo = Date.now() - 24 * 60 * 60 * 1000
-              const recentReviews = acknowledgedMeta
-                .filter(a => a.acknowledged_at && new Date(a.acknowledged_at).getTime() >= dayAgo)
-                .sort((a, b) => new Date(b.acknowledged_at!).getTime() - new Date(a.acknowledged_at!).getTime())
 
               const groups: { title: string; tone: string; empty: string; items: { key: string; text: string; detail: string }[] }[] = [
                 {
@@ -585,16 +581,6 @@ export default function LowPoolsClient({
                   empty: 'No new games showed up today.',
                   items: newEntries.map(r => ({ key: rowKey(r), text: `${r.site} ${r.mathname} (${r.denomination})`, detail: fmtPct(r.poolpercentage) })),
                 },
-                {
-                  title: 'Reviewed in the last 24 hours',
-                  tone: 'text-emerald-400',
-                  empty: 'No reviews in the last 24 hours.',
-                  items: recentReviews.map(a => ({
-                    key: rowKey(a),
-                    text: `${a.site} ${a.mathname} (${a.denomination})`,
-                    detail: `${a.acknowledged_by ?? 'staff'}${a.notes ? `: ${a.notes}` : ''}`,
-                  })),
-                },
               ]
 
               return (
@@ -604,7 +590,7 @@ export default function LowPoolsClient({
                     {groups.map(g => (
                       <div key={g.title}>
                         <p className={`text-xs font-semibold mb-1.5 ${g.tone}`}>
-                          {g.title} <span className="text-slate-500">({g.items.length})</span>
+                          {g.title}
                         </p>
                         {g.items.length === 0 ? (
                           <p className="text-xs text-slate-500">{g.empty}</p>
