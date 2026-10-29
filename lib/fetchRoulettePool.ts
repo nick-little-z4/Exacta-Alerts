@@ -101,6 +101,7 @@ export async function fetchRoulettePool(): Promise<RoulettePoolData> {
   const points: RouletteDataPoint[] = []
   const siteSet = new Set<string>()
   const dateSet = new Set<string>()
+  let percentSignSeen = false
 
   for (const line of lines.slice(1)) {
     const cols = parseCSVLine(line)
@@ -112,15 +113,22 @@ export async function fetchRoulettePool(): Promise<RoulettePoolData> {
 
     if (!site || !date || !rawSeed) continue
 
-    // Parse percentage — handles "99.50%" or "0.995" or "99.50"
-    let seedPct = parseFloat(rawSeed.replace('%', '').replace(',', ''))
+    // Parse percentage. Handles "100.02%", "1.0002" or "100.02"
+    const hasPercentSign = rawSeed.includes('%')
+    const seedPct = parseFloat(rawSeed.replace('%', '').replace(/,/g, ''))
     if (!isNaN(seedPct)) {
-      // If value is <= 1, it's a decimal — convert to percentage
-      if (seedPct <= 1) seedPct = seedPct * 100
       points.push({ site, date, seedPct })
+      if (hasPercentSign) percentSignSeen = true
       siteSet.add(site)
       dateSet.add(date)
     }
+  }
+
+  // Decide the scale once for the whole dataset instead of per value.
+  // The old per-value check (<= 1 means decimal) left 1.0002 (100.02%) as 1%.
+  // If no "%" was present and every value is small, the view sends fractions.
+  if (!percentSignSeen && points.length > 0 && points.every(p => Math.abs(p.seedPct) <= 5)) {
+    for (const p of points) p.seedPct = p.seedPct * 100
   }
 
   // Sort dates chronologically

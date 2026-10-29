@@ -33,7 +33,12 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
     const point: ChartPoint = { date }
     for (const site of data.sites) {
       const match = data.points.find(p => p.date === date && p.site === site)
-      if (match) point[site] = parseFloat(match.seedPct.toFixed(2))
+      if (match) {
+        const actual = parseFloat(match.seedPct.toFixed(2))
+        // Plot is capped at 100% so the chart stays tight; real value kept for the tooltip
+        point[site] = Math.min(actual, 100)
+        point[`${site}__actual`] = actual
+      }
     }
     return point
   })
@@ -114,7 +119,8 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
               tick={{ fill: '#64748b', fontSize: 11 }}
               axisLine={{ stroke: '#334155' }}
               tickLine={false}
-              domain={['auto', 'auto']}
+              domain={['auto', 100]}
+              allowDataOverflow
             />
             <Tooltip
               contentStyle={{
@@ -125,9 +131,12 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
               }}
               labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
               labelFormatter={(label: unknown) => formatDate(String(label))}
-              formatter={(value: unknown) => [
-                value != null ? `${Number(value).toFixed(2)}%` : '—'
-              ]}
+              formatter={(value: unknown, name: unknown, item: any) => {
+                const actual = item?.payload?.[`${String(name)}__actual`] ?? value
+                if (actual == null) return ['-', name]
+                const n = Number(actual)
+                return [n > 100 ? `${n.toFixed(2)}% (over 100%)` : `${n.toFixed(2)}%`, name]
+              }}
             />
             <Legend
               wrapperStyle={{ fontSize: '11px', paddingTop: '16px' }}
@@ -178,7 +187,7 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
                 <td className="text-right px-4 py-2.5 tabular-nums">
                   {latest ? (
                     <span className={`font-semibold ${latest.seedPct < 95 ? 'text-rose-400' : latest.seedPct < 98 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                      {latest.seedPct.toFixed(2)}%
+                      {latest.seedPct.toFixed(2)}%{latest.seedPct > 100 && <span className="ml-1 text-xs text-sky-400">over 100%</span>}
                     </span>
                   ) : '—'}
                 </td>
