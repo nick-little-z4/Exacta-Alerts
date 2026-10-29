@@ -131,11 +131,11 @@ export default function RoulettePoolClient({ data }: { data: RoulettePoolData })
               }}
               labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
               labelFormatter={(label: unknown) => formatDate(String(label))}
-              formatter={(value: unknown, name: unknown, item: any) => {
+              formatter={(value: any, name: any, item: any) => {
                 const actual = item?.payload?.[`${String(name)}__actual`] ?? value
-                if (actual == null) return ['-', name]
+                if (actual == null) return ['-', String(name)]
                 const n = Number(actual)
-                return [n > 100 ? `${n.toFixed(2)}% (over 100%)` : `${n.toFixed(2)}%`, name]
+                return [n > 100 ? `${n.toFixed(2)}% (over 100%)` : `${n.toFixed(2)}%`, String(name)]
               }}
             />
             <Legend
