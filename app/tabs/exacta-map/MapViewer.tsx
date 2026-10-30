@@ -13,6 +13,19 @@ export interface MapFacility {
   lat: number
   lng: number
   machineCount: number | null
+  address?: string | null
+  mapsUrl?: string | null
+  hours?: string | null
+  siteContact?: string | null
+  confluenceUrl?: string | null
+}
+
+// Hide Confluence placeholders like "Need Hours" or "Contact Needed"
+function cleanDetail(v?: string | null): string | null {
+  if (!v) return null
+  const t = v.trim()
+  if (!t || /^(need|contact needed|unknown)/i.test(t)) return null
+  return t
 }
 
 const SVG_W = 960
@@ -30,7 +43,7 @@ function project(lat: number, lng: number): { x: number; y: number } {
   const mercNorth = Math.log(Math.tan(Math.PI / 4 + northR / 2))
   const mercSouth = Math.log(Math.tan(Math.PI / 4 + southR / 2))
   const y = ((mercNorth - mercN) / (mercNorth - mercSouth)) * SVG_H
-  return { x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000 }
+  return { x, y }
 }
 
 // Offsets per site code to prevent stacking in same city
@@ -408,6 +421,10 @@ export default function MapViewer({ facilities }: Props) {
                   return hours ? (
                     <>
                       <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500 uppercase tracking-widest">Gaming Day Start</span>
+                        <span className="text-sm text-slate-200">{hours}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-500 uppercase tracking-widest">Timezone</span>
                         <span className="text-xs text-slate-300">{timezone ?? '—'}</span>
                       </div>
@@ -415,6 +432,49 @@ export default function MapViewer({ facilities }: Props) {
                   ) : null
                 })()}
               </div>
+              {(() => {
+                const address = cleanDetail(selectedFacility.address)
+                const hours = cleanDetail(selectedFacility.hours)
+                const contact = cleanDetail(selectedFacility.siteContact)
+                const mapsHref = selectedFacility.mapsUrl
+                  || (address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null)
+                if (!address && !hours && !contact && !selectedFacility.confluenceUrl) return null
+                return (
+                  <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col gap-3">
+                    {address && (
+                      <div>
+                        <span className="block text-xs text-slate-500 uppercase tracking-widest mb-1">Address</span>
+                        {mapsHref ? (
+                          <a href={mapsHref} target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-sky-400 hover:text-sky-300 underline-offset-2 hover:underline">
+                            {address} ↗
+                          </a>
+                        ) : (
+                          <span className="text-sm text-slate-200">{address}</span>
+                        )}
+                      </div>
+                    )}
+                    {hours && (
+                      <div>
+                        <span className="block text-xs text-slate-500 uppercase tracking-widest mb-1">Hours</span>
+                        <span className="text-sm text-slate-200 whitespace-pre-line">{hours}</span>
+                      </div>
+                    )}
+                    {contact && (
+                      <div>
+                        <span className="block text-xs text-slate-500 uppercase tracking-widest mb-1">Contact</span>
+                        <span className="text-sm text-slate-200 break-words">{contact}</span>
+                      </div>
+                    )}
+                    {selectedFacility.confluenceUrl && (
+                      <a href={selectedFacility.confluenceUrl} target="_blank" rel="noopener noreferrer"
+                        className="w-full text-center text-xs px-3 py-1.5 rounded border border-sky-700 text-sky-400 hover:bg-sky-950/30 transition-all">
+                        View in Confluence ↗
+                      </a>
+                    )}
+                  </div>
+                )
+              })()}
               <button onClick={resetView}
                 className="mt-4 w-full text-xs px-3 py-1.5 rounded border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200 transition-all">
                 ← Back to full map

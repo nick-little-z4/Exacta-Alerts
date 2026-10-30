@@ -123,6 +123,11 @@ interface FacilityLookup {
   city: string
   state: string
   country: string
+  address?: string | null
+  mapsUrl?: string | null
+  hours?: string | null
+  siteContact?: string | null
+  confluenceUrl?: string | null
 }
 
 async function getFacilityLookup(): Promise<FacilityLookup[]> {
@@ -178,6 +183,11 @@ export default async function ExactaMapPage() {
           city: f.city,
           state: f.state,
           country: f.country,
+          address: f.address ?? null,
+          mapsUrl: f.mapsUrl ?? null,
+          hours: f.hours ?? null,
+          siteContact: f.siteContact ?? null,
+          confluenceUrl: f.confluenceUrl ?? null,
           market: f.state,
           lat: SITE_COORDS[row.site].lat,
           lng: SITE_COORDS[row.site].lng,
