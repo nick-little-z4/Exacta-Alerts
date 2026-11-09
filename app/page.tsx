@@ -11,20 +11,40 @@ import { fetchBetTypePvalues, significantCount } from '@/lib/fetchBetTypePvalues
 
 export const dynamic = 'force-dynamic'
 
+// Each badge fetch gets a time limit so one slow source can't hold up the whole page.
+// Timings are logged to the server console to spot slow sources.
+const BADGE_TIMEOUT_MS = 8000
+
+async function badge<T>(name: string, p: Promise<T>): Promise<T> {
+  const start = Date.now()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${name} timed out after ${BADGE_TIMEOUT_MS}ms`)), BADGE_TIMEOUT_MS)
+      }),
+    ])
+  } finally {
+    if (timer) clearTimeout(timer)
+    console.log(`[home] ${name}: ${Date.now() - start}ms`)
+  }
+}
+
 function normalizeCheckdate(cd: string): string {
   return cd.replace(' ', 'T').split('.')[0]
 }
 
 export default async function Dashboard() {
 
-  // Fetch all badge data in parallel: failures are silent
+  // Fetch all badge data in parallel: failures and timeouts are silent
   const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult, pvalResult] = await Promise.allSettled([
-    fetchLowPools(),
-    fetchNPrizes(),
-    fetchManualHandicappingWins(),
-    fetchReportComps(),
-    fetchAcknowledgedHandicappingWins(),
-    fetchBetTypePvalues(),
+    badge('lowPools', fetchLowPools()),
+    badge('nPrizes', fetchNPrizes()),
+    badge('mhw', fetchManualHandicappingWins()),
+    badge('reportComps', fetchReportComps()),
+    badge('mhwAck', fetchAcknowledgedHandicappingWins()),
+    badge('pvalues', fetchBetTypePvalues()),
   ])
 
   // Low pools: unacknowledged criticals
