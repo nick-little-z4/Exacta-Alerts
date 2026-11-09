@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 export interface WinRow {
   sitename: string
   wager: number
@@ -17,7 +23,7 @@ export interface ManualHandicappingWinsData {
   error?: string | null
 }
 
-export async function fetchManualHandicappingWins(): Promise<ManualHandicappingWinsData> {
+async function fetchManualHandicappingWinsUncached(): Promise<ManualHandicappingWinsData> {
   const res = await fetch(
     `${process.env.EXACTA_API_BASE_URL}/manual-handicapping-wins`,
     {
@@ -32,3 +38,4 @@ export async function fetchManualHandicappingWins(): Promise<ManualHandicappingW
   const body = typeof data.body === 'string' ? JSON.parse(data.body) : data
   return body
 }
+export const fetchManualHandicappingWins = unstable_cache(fetchManualHandicappingWinsUncached, ['mhw'], { revalidate: CACHE_SECONDS })

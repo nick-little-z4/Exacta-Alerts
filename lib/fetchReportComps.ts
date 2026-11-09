@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 const API_VERSION = '3.23'
 
 export interface ReportCompRow {
@@ -66,35 +72,22 @@ function toIsoDate(d: string): string {
   return isNaN(dt.getTime()) ? d : dt.toISOString().slice(0, 10)
 }
 
-export async function fetchReportComps(): Promise<{
-  rows: ReportCompRow[]
-  acknowledged: AcknowledgedReportComp[]
-}> {
+async function fetchReportRowsUncached(): Promise<ReportCompRow[]> {
   const { token, siteId } = await getToken()
 
-  const [tableauRes, acknowledgedRes] = await Promise.all([
-    fetch(
-      `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_REPORT_COMPS_VIEW_ID}/data?pageSize=10000`,
-      { headers: { 'X-Tableau-Auth': token } }
-    ),
-    fetch(
-      `${process.env.EXACTA_API_BASE_URL}/report-comps/acknowledged`,
-      {
-        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store'
-      }
-    ),
-  ])
+  const tableauRes = await fetch(
+    `${process.env.TABLEAU_HOST}/api/${API_VERSION}/sites/${siteId}/views/${process.env.TABLEAU_REPORT_COMPS_VIEW_ID}/data?pageSize=10000`,
+    { headers: { 'X-Tableau-Auth': token }, cache: 'no-store' }
+  )
 
   if (!tableauRes.ok) throw new Error(`Tableau returned ${tableauRes.status}: ${await tableauRes.text()}`)
-    
 
   const csv = await tableauRes.text()
   const allLines = csv.trim().split('\n').filter(l => l.trim())
 
   if (allLines.length === 0) {
     console.log('[Report Comps] Tableau returned no data')
-    return { rows: [], acknowledged: [] }
+    return []
   }
 
   // Read columns by header name so column order changes in Tableau won't break parsing
@@ -131,9 +124,8 @@ export async function fetchReportComps(): Promise<{
     }
 
     const row = grouped.get(ackRowId)!
-    const measure = c[iName]
     const value = toNum(c[iVal])
-    const m = (measure ?? '').toLowerCase()
+    const m = (c[iName] ?? '').toLowerCase()
     if (m.includes('variance')) row.handleVariance = value
     else if (m.includes('dw')) row.dwHandle = value
     else if (m.includes('sys')) row.sysHandle = value
@@ -141,13 +133,30 @@ export async function fetchReportComps(): Promise<{
 
   const rows = Array.from(grouped.values())
   console.log('[Report Comps] rows after pivot:', rows.length)
+  return rows
+}
 
-  let acknowledged: AcknowledgedReportComp[] = []
-  if (acknowledgedRes.ok) {
-    const ackData = await acknowledgedRes.json()
-    const ackBody = typeof ackData.body === 'string' ? JSON.parse(ackData.body) : ackData
-    acknowledged = ackBody.acknowledged ?? []
-  }
+const fetchReportRowsCached = unstable_cache(fetchReportRowsUncached, ['report-comps'], { revalidate: CACHE_SECONDS })
 
+// Live: acknowledgements and notes show up right away
+async function fetchAcknowledgedReportComps(): Promise<AcknowledgedReportComp[]> {
+  const res = await fetch(`${process.env.EXACTA_API_BASE_URL}/report-comps/acknowledged`, {
+    headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const ackData = await res.json()
+  const ackBody = typeof ackData.body === 'string' ? JSON.parse(ackData.body) : ackData
+  return ackBody.acknowledged ?? []
+}
+
+export async function fetchReportComps(): Promise<{
+  rows: ReportCompRow[]
+  acknowledged: AcknowledgedReportComp[]
+}> {
+  const [rows, acknowledged] = await Promise.all([
+    fetchReportRowsCached(),
+    fetchAcknowledgedReportComps().catch(() => [] as AcknowledgedReportComp[]),
+  ])
   return { rows, acknowledged }
 }

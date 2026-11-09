@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 export type BetTypeRow = {
   site: string;
   wager_name: string;
@@ -36,7 +42,7 @@ export type BetTypePvalues = {
   windows: Record<WindowKey, BetTypeRow[]>;
 };
 
-export async function fetchBetTypePvalues(): Promise<BetTypePvalues | null> {
+async function fetchBetTypePvaluesUncached(): Promise<BetTypePvalues | null> {
   try {
     const res = await fetch(`${process.env.EXACTA_API_BASE_URL}/bet-type-pvalues`, {
       headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
@@ -58,3 +64,4 @@ export function significantCount(data: BetTypePvalues | null, win: WindowKey = '
     (r) => r.tested && ((r.p_usd_bh ?? 1) < 0.05 || (r.p_hits_bh ?? 1) < 0.05),
   ).length;
 }
+export const fetchBetTypePvalues = unstable_cache(fetchBetTypePvaluesUncached, ['bet-type-pvalues'], { revalidate: CACHE_SECONDS })

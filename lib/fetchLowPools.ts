@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 export interface PoolRow {
   site: string
   manufacturerid: string
@@ -38,42 +44,42 @@ export interface LowPoolsData {
   acknowledged: AcknowledgedPool[]
 }
 
-export async function fetchLowPools(): Promise<LowPoolsData> {
-  const [poolsRes, acknowledgedRes] = await Promise.all([
-    fetch(
-      `${process.env.EXACTA_API_BASE_URL}/low-pools-ecs`,
-      {
-        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store',
-      }
-    ),
-    fetch(
-      `${process.env.EXACTA_API_BASE_URL}/low-pools-ecs/acknowledged`,
-      {
-        headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
-        cache: 'no-store',
-      }
-    ),
-  ])
-
+async function fetchPoolsUncached() {
+  const poolsRes = await fetch(`${process.env.EXACTA_API_BASE_URL}/low-pools-ecs`, {
+    headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
+    cache: 'no-store',
+  })
   if (!poolsRes.ok) {
     throw new Error(`Failed to fetch pools: ${poolsRes.status}`)
   }
-
   const poolsData = await poolsRes.json()
-  const body = typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
+  return typeof poolsData.body === 'string' ? JSON.parse(poolsData.body) : poolsData
+}
 
-  let acknowledged: AcknowledgedPool[] = []
-  if (acknowledgedRes.ok) {
-    const acknowledgedData = await acknowledgedRes.json()
-    const acknowledgedBody = typeof acknowledgedData.body === 'string'
-      ? JSON.parse(acknowledgedData.body)
-      : acknowledgedData
-    acknowledged = acknowledgedBody.acknowledged ?? []
-  } else {
+const fetchPoolsCached = unstable_cache(fetchPoolsUncached, ['low-pools'], { revalidate: CACHE_SECONDS })
+
+// Live: an acknowledgement shows up right away
+async function fetchAcknowledgedPools(): Promise<AcknowledgedPool[]> {
+  const acknowledgedRes = await fetch(`${process.env.EXACTA_API_BASE_URL}/low-pools-ecs/acknowledged`, {
+    headers: { 'x-api-key': process.env.EXACTA_API_KEY! },
+    cache: 'no-store',
+  })
+  if (!acknowledgedRes.ok) {
     console.warn(`[fetchLowPools] acknowledged fetch failed: ${acknowledgedRes.status}`)
+    return []
   }
+  const acknowledgedData = await acknowledgedRes.json()
+  const acknowledgedBody = typeof acknowledgedData.body === 'string'
+    ? JSON.parse(acknowledgedData.body)
+    : acknowledgedData
+  return acknowledgedBody.acknowledged ?? []
+}
 
+export async function fetchLowPools(): Promise<LowPoolsData> {
+  const [body, acknowledged] = await Promise.all([
+    fetchPoolsCached(),
+    fetchAcknowledgedPools().catch(() => [] as AcknowledgedPool[]),
+  ])
   return {
     ...body,
     acknowledged,

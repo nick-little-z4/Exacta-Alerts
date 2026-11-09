@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 const API_VERSION = '3.23'
 
 export interface RouletteDataPoint {
@@ -69,7 +75,7 @@ async function getLastRefreshTime(token: string, siteId: string): Promise<string
   }
 }
 
-export async function fetchRoulettePool(): Promise<RoulettePoolData> {
+async function fetchRoulettePoolUncached(): Promise<RoulettePoolData> {
   const { token, siteId } = await getToken()
 
   const [res, lastRefreshed] = await Promise.all([
@@ -96,7 +102,7 @@ export async function fetchRoulettePool(): Promise<RoulettePoolData> {
   const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('week') || h.includes('month'))
   const seedIdx = headers.findIndex(h => h.includes('seed') || h.includes('pct') || h.includes('%') || h.includes('percent'))
 
-  console.log('[fetchRoulettePool] col indices — site:', siteIdx, 'date:', dateIdx, 'seed:', seedIdx)
+  console.log('[fetchRoulettePool] col indices: site:', siteIdx, 'date:', dateIdx, 'seed:', seedIdx)
 
   const points: RouletteDataPoint[] = []
   const siteSet = new Set<string>()
@@ -143,3 +149,4 @@ export async function fetchRoulettePool(): Promise<RoulettePoolData> {
     lastRefreshed,
   }
 }
+export const fetchRoulettePool = unstable_cache(fetchRoulettePoolUncached, ['roulette-pool'], { revalidate: CACHE_SECONDS })

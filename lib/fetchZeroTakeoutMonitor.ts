@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 export interface ZeroTakeoutRow {
   sitename: string
   mathname: string
@@ -16,7 +22,7 @@ export interface ZeroTakeoutData {
   error?: string | null
 }
 
-export async function fetchZeroTakeoutMonitor(): Promise<ZeroTakeoutData> {
+async function fetchZeroTakeoutMonitorUncached(): Promise<ZeroTakeoutData> {
   const res = await fetch(
     `${process.env.EXACTA_API_BASE_URL}/zero-takeout-monitor`,
     {
@@ -31,3 +37,4 @@ export async function fetchZeroTakeoutMonitor(): Promise<ZeroTakeoutData> {
   const body = typeof data.body === 'string' ? JSON.parse(data.body) : data
   return body
 }
+export const fetchZeroTakeoutMonitor = unstable_cache(fetchZeroTakeoutMonitorUncached, ['zero-takeout'], { revalidate: CACHE_SECONDS })

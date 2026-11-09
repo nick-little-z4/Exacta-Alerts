@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 const API_VERSION = '3.23'
 
 export interface MachineRow {
@@ -101,7 +107,7 @@ async function getLastRefreshTime(token: string, siteId: string): Promise<string
   }
 }
 
-export async function fetchMachineCounts(): Promise<MachineCountsData> {
+async function fetchMachineCountsUncached(): Promise<MachineCountsData> {
   const { token, siteId } = await getToken()
 
   const [dataRes, lastRefreshed] = await Promise.all([
@@ -161,3 +167,4 @@ export async function fetchMachineCounts(): Promise<MachineCountsData> {
     lastRefreshed,
   }
 }
+export const fetchMachineCounts = unstable_cache(fetchMachineCountsUncached, ['machine-counts'], { revalidate: CACHE_SECONDS })

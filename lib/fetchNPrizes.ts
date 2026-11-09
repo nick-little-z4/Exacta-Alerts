@@ -1,3 +1,9 @@
+import { unstable_cache } from 'next/cache'
+
+// Shared data is cached on the server for CACHE_SECONDS so every visitor reads the
+// same copy instead of each one calling the backend. Acknowledgements stay live.
+const CACHE_SECONDS = 120
+
 export interface NPrizesRow {
   mathname: string
   denom: number
@@ -14,7 +20,7 @@ export interface NPrizesData {
   timestamp: string
 }
 
-export async function fetchNPrizes(): Promise<NPrizesData> {
+async function fetchNPrizesUncached(): Promise<NPrizesData> {
   const res = await fetch(
     `${process.env.EXACTA_API_BASE_URL}/n-prizes`,
     {
@@ -29,3 +35,4 @@ export async function fetchNPrizes(): Promise<NPrizesData> {
   const body = typeof json.body === 'string' ? JSON.parse(json.body) : json
   return body
 }
+export const fetchNPrizes = unstable_cache(fetchNPrizesUncached, ['n-prizes'], { revalidate: CACHE_SECONDS })
