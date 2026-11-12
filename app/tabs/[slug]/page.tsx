@@ -2,7 +2,18 @@ import { tabs } from '@/lib/tabs'
 import TabPageLayout from '@/components/TabPageLayout'
 import { notFound } from 'next/navigation'
 
-const DEDICATED_PAGES = ['machine-counts', 'exacta-map', 'low-pools', 'daily-report-mismatch', 'zero-takeout-monitor', 'bet-type-pvalues']
+// Tabs with their own folder under app/tabs/. Add new dedicated pages here,
+// or the generic page below will also build that route and can 404 on Amplify.
+const DEDICATED_PAGES = [
+  'machine-counts',
+  'exacta-map',
+  'low-pools',
+  'manual-handicapping-wins',
+  'daily-report-mismatch',
+  'n-prizes',
+  'zero-takeout-monitor',
+  'bet-type-pvalues',
+]
 
 export function generateStaticParams() {
   return tabs
@@ -12,7 +23,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }) {
   const tab = tabs.find((t) => t.slug === params.slug)
-  return { title: tab ? `${tab.title} — Exacta Alerts` : 'Not Found' }
+  return { title: tab ? `${tab.title} | Exacta Alerts` : 'Not Found' }
 }
 
 export default function TabPage({ params }: { params: { slug: string } }) {
