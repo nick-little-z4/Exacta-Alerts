@@ -1,16 +1,20 @@
 import Link from 'next/link'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
+import { fetchNPrizesAcknowledged, AcknowledgedNPrize } from '@/lib/fetchNPrizesAcknowledged'
 import NPrizesClient from './NPrizesClient'
+
+export const dynamic = 'force-dynamic'
 
 export default async function NPrizesPage() {
   let data: Awaited<ReturnType<typeof fetchNPrizes>> | null = null
   let error: string | null = null
 
-  try {
-    data = await fetchNPrizes()
-  } catch (err) {
-    error = String(err)
-  }
+  let acknowledged: AcknowledgedNPrize[] = []
+
+  const [dataResult, ackResult] = await Promise.allSettled([fetchNPrizes(), fetchNPrizesAcknowledged()])
+  if (dataResult.status === 'fulfilled') data = dataResult.value
+  else error = String(dataResult.reason)
+  if (ackResult.status === 'fulfilled') acknowledged = ackResult.value
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -37,7 +41,7 @@ export default async function NPrizesPage() {
             Failed to load data: {error}
           </div>
         ) : (
-          <NPrizesClient data={data!} />
+          <NPrizesClient data={data!} acknowledged={acknowledged} />
         )}
 
         <footer className="mt-12 text-center text-xs text-slate-600">

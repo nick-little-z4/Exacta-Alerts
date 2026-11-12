@@ -8,6 +8,7 @@ import { fetchAcknowledgedHandicappingWinsNew as fetchAcknowledgedHandicappingWi
 import { fetchReportComps } from '@/lib/fetchReportComps'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
 import { fetchBetTypePvalues, significantCount } from '@/lib/fetchBetTypePvalues'
+import { fetchNPrizesAcknowledged, nPrizesAckKey } from '@/lib/fetchNPrizesAcknowledged'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,13 +39,14 @@ function normalizeCheckdate(cd: string): string {
 export default async function Dashboard() {
 
   // Fetch all badge data in parallel: failures and timeouts are silent
-  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult, pvalResult] = await Promise.allSettled([
+  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult, pvalResult, nPrizesAckResult] = await Promise.allSettled([
     badge('lowPools', fetchLowPools()),
     badge('nPrizes', fetchNPrizes()),
     badge('mhw', fetchManualHandicappingWins()),
     badge('reportComps', fetchReportComps()),
     badge('mhwAck', fetchAcknowledgedHandicappingWins()),
     badge('pvalues', fetchBetTypePvalues()),
+    badge('nPrizesAck', fetchNPrizesAcknowledged()),
   ])
 
   // Low pools: unacknowledged criticals
@@ -83,7 +85,12 @@ export default async function Dashboard() {
 
     // N Prizes
   const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
-  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10).length
+  const nPrizesAckKeys = new Set(
+    (nPrizesAckResult.status === 'fulfilled' ? nPrizesAckResult.value : [])
+      .filter(a => a.is_acknowledged !== false)
+      .map(a => a.ack_key)
+  )
+  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10 && !nPrizesAckKeys.has(nPrizesAckKey(r))).length
 
   // Roulette P Values: BH-significant cells in the past 7 days
   const pvalData = pvalResult.status === 'fulfilled' ? pvalResult.value : null
