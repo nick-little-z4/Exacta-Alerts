@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { fetchMachineCounts, MachineRow } from '@/lib/fetchMachineCounts'
+import { fetchMachineCounts, fetchMachineCountsUncached, MachineRow } from '@/lib/fetchMachineCounts'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,8 +99,14 @@ function MiniMap({ groups }: MiniMapProps) {
   )
 }
 
-export default async function MachineCountsPage() {
-  const { rows, lastRefreshed } = await fetchMachineCounts()
+export default async function MachineCountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ refresh?: string }>
+}) {
+  // ?refresh=1 skips the 2-minute cache and pulls straight from Tableau
+  const { refresh } = await searchParams
+  const { rows, lastRefreshed } = refresh ? await fetchMachineCountsUncached() : await fetchMachineCounts()
   const timestamp = lastRefreshed
     ? new Date(lastRefreshed).toLocaleString('en-US', {
         timeZone: 'America/Chicago',
@@ -125,7 +131,8 @@ export default async function MachineCountsPage() {
     .map(([market, facilities]) => ({ market, facilities }))
 
   const totalMarkets = groups.length
-  const totalMachines = rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0)
+  // Add exact values first, then round once (matches Tableau's totals)
+  const totalMachines = Math.round(rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0))
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -147,6 +154,13 @@ export default async function MachineCountsPage() {
               <div className="mt-4 flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 w-fit relative group cursor-help">
                 <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
                 <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
+                <Link
+                  href="/tabs/machine-counts?refresh=1"
+                  prefetch={false}
+                  className="ml-2 text-xs text-orange-400 hover:text-orange-300 font-semibold"
+                >
+                  ↻ Refresh
+                </Link>
                 <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
                   Last updated from Tableau Data Source.
                 </span>
@@ -218,9 +232,9 @@ export default async function MachineCountsPage() {
               </thead>
               <tbody>
                 {groups.map(group => {
-                  const total = group.facilities.reduce(
+                  const total = Math.round(group.facilities.reduce(
                     (sum, f) => sum + (f.counts[f.counts.length - 1] ?? 0), 0
-                  )
+                  ))
                   return (
                     <tr key={group.market} className="border-t border-slate-800 hover:bg-[#1a1d35] transition-colors">
                       <td className="px-4 py-2.5 font-semibold text-orange-400 uppercase tracking-widest text-xs">
