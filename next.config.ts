@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     TABLEAU_ROULETTE_POOL_VIEW_ID: process.env.TABLEAU_ROULETTE_POOL_VIEW_ID,
     EXACTA_API_BASE_URL: process.env.EXACTA_API_BASE_URL,
     EXACTA_API_KEY: process.env.EXACTA_API_KEY,
+    BADGES_API_KEY: process.env.BADGES_API_KEY,
   },
 }
 
