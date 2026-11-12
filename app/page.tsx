@@ -2,121 +2,26 @@ import Link from 'next/link'
 import TabCard from '@/components/TabCard'
 import HomeLive from '@/components/HomeLive'
 import { tabs } from '@/lib/tabs'
-import { fetchLowPools } from '@/lib/fetchLowPools'
-import { fetchManualHandicappingWins } from '@/lib/fetchManualHandicappingWins'
-import { fetchAcknowledgedHandicappingWinsNew as fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWinsNew'
-import { fetchReportComps } from '@/lib/fetchReportComps'
-import { fetchNPrizes } from '@/lib/fetchNPrizes'
-import { fetchBetTypePvalues, significantCount } from '@/lib/fetchBetTypePvalues'
-import { fetchNPrizesAcknowledged, nPrizesAckKey } from '@/lib/fetchNPrizesAcknowledged'
+import { getBadgeSummary } from '@/lib/badges'
 
 export const dynamic = 'force-dynamic'
 
-// Each badge fetch gets a time limit so one slow source can't hold up the whole page.
-// Timings are logged to the server console to spot slow sources.
-const BADGE_TIMEOUT_MS = 8000
-
-async function badge<T>(name: string, p: Promise<T>): Promise<T> {
-  const start = Date.now()
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      p,
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`${name} timed out after ${BADGE_TIMEOUT_MS}ms`)), BADGE_TIMEOUT_MS)
-      }),
-    ])
-  } finally {
-    if (timer) clearTimeout(timer)
-    console.log(`[home] ${name}: ${Date.now() - start}ms`)
-  }
-}
-
-function normalizeCheckdate(cd: string): string {
-  return cd.replace(' ', 'T').split('.')[0]
-}
-
 export default async function Dashboard() {
 
-  // Fetch all badge data in parallel: failures and timeouts are silent
-  const [lowPoolsResult, nPrizesResult, mhwResult, reportCompsResult, mhwAckResult, pvalResult, nPrizesAckResult] = await Promise.allSettled([
-    badge('lowPools', fetchLowPools()),
-    badge('nPrizes', fetchNPrizes()),
-    badge('mhw', fetchManualHandicappingWins()),
-    badge('reportComps', fetchReportComps()),
-    badge('mhwAck', fetchAcknowledgedHandicappingWins()),
-    badge('pvalues', fetchBetTypePvalues()),
-    badge('nPrizesAck', fetchNPrizesAcknowledged()),
-  ])
-
-  // Low pools: unacknowledged criticals
-  const lowPoolsData = lowPoolsResult.status === 'fulfilled' ? lowPoolsResult.value : null
-  const acknowledgedKeys = new Set((lowPoolsData?.acknowledged ?? []).map(a => `${a.site}-${a.mathname}-${a.denomination}`))
-  const unacknowledgedCriticals = (lowPoolsData?.criticals ?? []).filter(r => !acknowledgedKeys.has(`${r.site}-${r.mathname}-${r.denomination}`)).length
-
-  // Manual Handicapping Wins: sites with payout >= 100% and net win >= $100, minus acknowledged
-  const mhwData = mhwResult.status === 'fulfilled' ? mhwResult.value : null
-  const mhwAcknowledged = mhwAckResult.status === 'fulfilled' ? mhwAckResult.value : []
-  const mhwAckKeys = new Set(
-    mhwAcknowledged.map(a => `${a.sitename}-${normalizeCheckdate(a.checkdate)}`)
-  )
-  const mhwCheckdate = mhwData?.checkdate ?? ''
-  const flaggedMHW = (mhwData?.data ?? []).filter(r => {
-    const payout = parseFloat(r.payout)
-    const netWin = r.net_win ?? 0
-    if (!(payout >= 100 && netWin >= 100)) return false
-    const key = `${r.sitename}-${normalizeCheckdate(mhwCheckdate)}`
-    return !mhwAckKeys.has(key)
-  }).length
-
-  // Mismatch Reports: unacknowledged variances
-  const reportCompsData = reportCompsResult.status === 'fulfilled' ? reportCompsResult.value : null
-  const acknowledgedIds = new Set((reportCompsData?.acknowledged ?? []).filter(a => a.is_acknowledged !== false).map(a => a.ack_row_id))
-  const cutoff = new Date()
-  cutoff.setHours(0, 0, 0, 0)
-  cutoff.setDate(cutoff.getDate() - 7)
-  const unacknowledgedMismatches = (reportCompsData?.rows ?? []).filter(r => {
-    if (!r.handleVariance || r.handleVariance === 0) return false
-    if (acknowledgedIds.has(r.ackRowId)) return false
-    const d = new Date(r.date)
-    if (isNaN(d.getTime())) return true
-    return d.getTime() >= cutoff.getTime()
-  }).length
-
-    // N Prizes
-  const nPrizesData = nPrizesResult.status === 'fulfilled' ? nPrizesResult.value : null
-  const nPrizesAckKeys = new Set(
-    (nPrizesAckResult.status === 'fulfilled' ? nPrizesAckResult.value : [])
-      .filter(a => a.is_acknowledged !== false)
-      .map(a => a.ack_key)
-  )
-  const highNPrizes = (nPrizesData?.data ?? []).filter(r => r.num_prizes >= 10 && !nPrizesAckKeys.has(nPrizesAckKey(r))).length
-
-  // Roulette P Values: BH-significant cells in the past 7 days
-  const pvalData = pvalResult.status === 'fulfilled' ? pvalResult.value : null
-  const significantPvals = pvalData ? significantCount(pvalData, '7d') : 0
-
-  // Summary bar totals
-  const totalAlerts = unacknowledgedCriticals + flaggedMHW + unacknowledgedMismatches + highNPrizes + significantPvals
+  // All alert rules live in lib/badges.ts (shared with /api/badges and TV mode)
+  const summary = await getBadgeSummary()
+  const totalAlerts = summary.total
   const hasAlerts = totalAlerts > 0
 
   // Badge map by slug
-  const badges: Record<string, { count: number; color: 'red' | 'amber' | 'sky' }> = {
-    'low-pools': { count: unacknowledgedCriticals, color: 'red' },
-    'manual-handicapping-wins': { count: flaggedMHW, color: 'red' },
-    'daily-report-mismatch': { count: unacknowledgedMismatches, color: 'amber' },
-    'n-prizes': { count: highNPrizes, color: 'amber' },
-    'bet-type-pvalues': { count: significantPvals, color: 'red' },
-  }
+  const badges: Record<string, { count: number; color: 'red' | 'amber' | 'sky' }> = Object.fromEntries(
+    Object.values(summary.badges).map(b => [b.key, { count: b.count, color: b.color }])
+  )
 
   // Summary bar chips (each links to its tab)
-  const chips = [
-    { slug: 'low-pools', label: 'Critical Pools', count: unacknowledgedCriticals, tone: 'rose' },
-    { slug: 'manual-handicapping-wins', label: 'MH Wins Flagged', count: flaggedMHW, tone: 'amber' },
-    { slug: 'daily-report-mismatch', label: 'Mismatches', count: unacknowledgedMismatches, tone: 'amber' },
-    { slug: 'n-prizes', label: 'N Prizes ≥10', count: highNPrizes, tone: 'amber' },
-    { slug: 'bet-type-pvalues', label: 'Roulette P Values', count: significantPvals, tone: 'rose' },
-  ].filter(c => c.count > 0)
+  const chips = Object.values(summary.badges)
+    .filter(b => b.count > 0)
+    .map(b => ({ slug: b.key, label: b.label, count: b.count, tone: b.key === 'low-pools' || b.key === 'bet-type-pvalues' ? 'rose' : 'amber' }))
 
   // Alerts first: tabs with active badges move to the top, highest count first
   const sortedTabs = [...tabs].sort((a, b) => (badges[b.slug]?.count ?? 0) - (badges[a.slug]?.count ?? 0))
