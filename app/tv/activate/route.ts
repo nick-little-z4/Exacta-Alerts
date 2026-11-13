@@ -14,8 +14,12 @@ export async function GET(req: NextRequest) {
   }
 
   const { value, expires } = await createTvPass()
-  // Send the TV to the home page with ?tvstart=1, which turns TV mode on
-  const res = NextResponse.redirect(new URL('/?tvstart=1', req.url))
+  // Send the TV to the home page with ?tvstart=1, which turns TV mode on.
+  // Build the URL from the forwarded host: on Amplify, req.url is the internal
+  // server address (localhost:3000), not alerts.exactasystems.com.
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? req.nextUrl.host
+  const proto = req.headers.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http')
+  const res = NextResponse.redirect(`${proto}://${host}/?tvstart=1`)
   res.cookies.set(TV_COOKIE, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
