@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     EXACTA_API_BASE_URL: process.env.EXACTA_API_BASE_URL,
     EXACTA_API_KEY: process.env.EXACTA_API_KEY,
     BADGES_API_KEY: process.env.BADGES_API_KEY,
+    TV_ACCESS_KEY: process.env.TV_ACCESS_KEY,
   },
 }
 

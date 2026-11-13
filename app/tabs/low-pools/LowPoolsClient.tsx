@@ -506,9 +506,10 @@ export default function LowPoolsClient({
 
       {/* Top bar: view toggle + info button */}
       <div className="flex items-center justify-between mb-6">
-        {/* Toggle */}
+        {/* Toggle (data-tv-subtab: TV mode shows each view in turn) */}
         <div className="flex items-center bg-[#13152a] border border-slate-700 rounded-lg p-1 gap-1">
           <button
+            data-tv-subtab="Pool Monitor"
             onClick={() => setView('pools')}
             className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
               view === 'pools'
@@ -519,6 +520,7 @@ export default function LowPoolsClient({
             Pool Monitor
           </button>
           <button
+            data-tv-subtab="Roulette"
             onClick={() => setView('roulette')}
             disabled={!rouletteData}
             className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${

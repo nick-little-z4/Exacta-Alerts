@@ -14,6 +14,9 @@
  * TV mode after a reload, and nobody else is affected.
  *
  * Long pages scroll slowly from top to bottom during their slide, so nothing is cut off.
+ * Pages with sub-tabs (buttons marked data-tv-subtab, e.g. Low Pools / Roulette Graph)
+ * show each sub-tab for a full slide before moving on. The label shows the sub-tab
+ * name: data-tv-subtab="Roulette" sets it, otherwise the button text is used.
  *
  * Page chrome hidden in TV mode (see globals.css): back links, "How to read this
  * page", footers, "Updated" labels and tooltips, and anything marked data-tv-hide.
@@ -104,6 +107,14 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
 
   const exit = useCallback(() => writeEnabled(false), [])
 
+  // /tv/activate sends the TV to /?tvstart=1: turn TV mode on and go to the first page
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tvstart') === '1') {
+      writeEnabled(true)
+      router.replace(TV_PAGES[0])
+    }
+  }, [router])
+
   // Mark the page so globals.css can hide chrome and the cursor
   useEffect(() => {
     if (enabled) document.documentElement.setAttribute('data-tv', 'on')
@@ -111,52 +122,88 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
     return () => document.documentElement.removeAttribute('data-tv')
   }, [enabled])
 
-  // Next page after `seconds`; restarts on every page change
+  // How many sub-tabs this page has (buttons marked data-tv-subtab). Each one gets
+  // its own full slide time; the progress bar covers the whole page.
+  const [segments, setSegments] = useState(1)
+  // Name of the sub-tab being shown, for the page label (e.g. "Pool Monitor")
+  const [subLabel, setSubLabel] = useState<string | null>(null)
+
+  // Slide sequence for the current page: for each sub-tab (or once if none),
+  // click it, start at the top, hold, scroll slowly to the bottom, hold.
+  // Then go to the next page. Restarts on every page change.
   useEffect(() => {
     if (!enabled) return
     router.prefetch(next)
-    const t = setTimeout(() => router.push(next), seconds * 1000)
-    return () => clearTimeout(t)
-  }, [enabled, seconds, pathname, next, router])
 
-  // Auto scroll: start at the top, hold, scroll slowly to the bottom, hold.
-  // Pages that already fit on screen don't move.
-  useEffect(() => {
-    if (!enabled) return
-    window.scrollTo(0, 0)
-    const holdMs = Math.min(4000, seconds * 1000 * 0.15)   // pause at top and bottom
-    const scrollMs = seconds * 1000 - holdMs * 2
+    let cancelled = false
+    const timers: ReturnType<typeof setTimeout>[] = []
     let frame = 0
-    let startAt = 0
-    const begin = setTimeout(() => {
+    const holdMs = Math.min(4000, seconds * 1000 * 0.15)
+    const scrollMs = seconds * 1000 - holdMs * 2
+
+    const scrollDown = () => {
       const distance = document.documentElement.scrollHeight - window.innerHeight
       if (distance <= 20 || scrollMs <= 0) return
+      let startAt = 0
       const step = (now: number) => {
+        if (cancelled) return
         if (!startAt) startAt = now
         const t = Math.min(1, (now - startAt) / scrollMs)
-        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2  // smooth start and stop
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
         window.scrollTo(0, distance * eased)
         if (t < 1) frame = requestAnimationFrame(step)
       }
       frame = requestAnimationFrame(step)
-    }, holdMs)
-    return () => {
-      clearTimeout(begin)
-      cancelAnimationFrame(frame)
     }
-  }, [enabled, seconds, pathname])
+
+    // Give the page a moment to render before looking for sub-tabs
+    timers.push(setTimeout(() => {
+      if (cancelled) return
+      const subtabs = Array.from(document.querySelectorAll<HTMLElement>('[data-tv-subtab]'))
+      const count = Math.max(1, subtabs.length)
+      setSegments(count)
+
+      const runSegment = (i: number) => {
+        if (cancelled) return
+        if (i >= count) {
+          router.push(next)
+          return
+        }
+        if (subtabs[i]) {
+          subtabs[i].click()
+          // Label: the attribute's value if set (data-tv-subtab="Roulette"), else the button text
+          const name = subtabs[i].getAttribute('data-tv-subtab') || subtabs[i].textContent || ''
+          setSubLabel(name.trim() || null)
+        }
+        cancelAnimationFrame(frame)
+        window.scrollTo(0, 0)
+        timers.push(setTimeout(scrollDown, holdMs))
+        timers.push(setTimeout(() => runSegment(i + 1), seconds * 1000))
+      }
+      runSegment(0)
+    }, 300))
+
+    return () => {
+      cancelled = true
+      timers.forEach(clearTimeout)
+      cancelAnimationFrame(frame)
+      setSegments(1)
+      setSubLabel(null)
+    }
+  }, [enabled, seconds, pathname, next, router])
 
   // Any click or key exits. Small delay so the click that started TV mode doesn't stop it.
   useEffect(() => {
     if (!enabled) return
     let armed = false
     const arm = setTimeout(() => { armed = true }, 1000)
-    const stop = () => { if (armed) exit() }
+    // e.isTrusted: ignore the runner's own sub-tab clicks
+    const stop = (e?: Event) => { if (armed && (!e || e.isTrusted)) exit() }
     // Right arrow: next page. Left arrow: previous page. Any other key exits.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') { e.preventDefault(); router.push(next); return }
       if (e.key === 'ArrowLeft') { e.preventDefault(); router.push(prev); return }
-      stop()
+      stop(e)
     }
     window.addEventListener('click', stop, true)
     window.addEventListener('keydown', onKey, true)
@@ -176,7 +223,7 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
       <div className="fixed bottom-3 left-4 z-[100] pointer-events-none text-xs text-slate-300 bg-[#0a0b14]/80 border border-slate-800 rounded-full px-3 py-1 flex items-center gap-2">
         {index >= 0 && <span className="font-semibold tabular-nums text-orange-400">{index + 1} / {pages.length}</span>}
         <span className="text-slate-600">·</span>
-        <span>{pageLabel(pathname)}</span>
+        <span>{pageLabel(pathname)}{subLabel ? ` - ${subLabel}` : ''}</span>
       </div>
       <div
         className="fixed bottom-3 right-4 z-[100] pointer-events-none text-[11px] tracking-wide text-slate-400 bg-[#0a0b14]/70 border border-slate-800 rounded-full px-3 py-1"
@@ -186,9 +233,9 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
       </div>
       <div className="fixed bottom-0 left-0 right-0 h-1 z-[100] bg-slate-900/60 pointer-events-none">
         <div
-          key={pathname}
+          key={`${pathname}-${segments}`}
           className="h-full bg-gradient-to-r from-orange-400 to-pink-500"
-          style={{ animation: `tv-progress ${seconds}s linear forwards` }}
+          style={{ animation: `tv-progress ${seconds * segments}s linear forwards` }}
         />
       </div>
     </>
