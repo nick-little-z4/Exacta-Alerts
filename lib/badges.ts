@@ -131,7 +131,9 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
       return !mhwAcked.has(`${r.sitename}-${mhwCheckdate}`)
     })
     .map(r => ({
-      id: `mhw|${r.sitename}|${mhwCheckdate}`,
+      // Not keyed on checkdate: it moves every writer run, which made the same
+      // site look like a new alert (and the old one "cleared") each time
+      id: `mhw|${r.sitename}`,
       title: r.sitename,
       detail: `Payout ${r.payout} · Net win ${money(r.net_win)}`,
       sitename: r.sitename,
@@ -198,7 +200,8 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
         (r.p_hits_bh ?? 1) < PVALUE_ALPHA ? `hit rate p=${(r.p_hits_bh ?? 0).toFixed(4)}` : null,
       ].filter(Boolean).join(' · ')
       return {
-        id: `pvalue|${r.site}|${r.wager_name}|${pvals?.generated_at ?? ''}`,
+        // Not keyed on generated_at, which changes every run
+        id: `pvalue|${r.site}|${r.wager_name}`,
         title: `${r.site} · ${r.wager_name}`,
         detail: `${tests} · Net vs theo ${money(r.net_vs_theo)}`,
         site: r.site,
