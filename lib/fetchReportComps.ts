@@ -107,6 +107,8 @@ async function fetchReportRowsUncached(): Promise<ReportCompRow[]> {
     const c = parseCSVLine(line)
     const date = c[iDate] ?? ''
     if (!date) continue
+    // Skip Tableau total rows (Date, Market, etc. shown as "All")
+    if ([date, c[iMkt], c[iEnt], c[iSys]].some(v => (v ?? '').trim().toLowerCase() === 'all')) continue
 
     const enterprise = c[iEnt] ?? ''
     const gameType = c[iGame] ?? ''
