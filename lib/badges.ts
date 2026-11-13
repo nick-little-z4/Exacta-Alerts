@@ -41,6 +41,11 @@ export interface Badge {
   color: 'red' | 'amber'
   count: number
   items: BadgeItem[]
+  /**
+   * Every flagged item, acknowledged or not. Only set where Slack needs to watch
+   * acknowledged items too (MH Wins: re-alert when net win grows). Not counted.
+   */
+  watch?: BadgeItem[]
   error: string | null
 }
 
@@ -123,25 +128,29 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
     (mhwAckR.status === 'fulfilled' ? mhwAckR.value : []).map(a => `${a.sitename}-${normalizeCheckdate(a.checkdate)}`)
   )
   const mhwCheckdate = normalizeCheckdate(mhw?.checkdate ?? '')
-  const mhwItems: BadgeItem[] = (mhw?.data ?? [])
-    .filter(r => {
-      const payout = parseFloat(r.payout)
-      const netWin = r.net_win ?? 0
-      if (!(payout >= MHW_PAYOUT_THRESHOLD && netWin >= MHW_NET_WIN_THRESHOLD)) return false
-      return !mhwAcked.has(`${r.sitename}-${mhwCheckdate}`)
-    })
-    .map(r => ({
-      // Not keyed on checkdate: it moves every writer run, which made the same
-      // site look like a new alert (and the old one "cleared") each time
-      id: `mhw|${r.sitename}`,
-      title: r.sitename,
-      detail: `Payout ${r.payout} · Net win ${money(r.net_win)}`,
-      sitename: r.sitename,
-      payout: r.payout,
-      net_win: r.net_win,
-      wager: r.wager,
-      checkdate: mhwCheckdate,
-    }))
+  const mhwToItem = (r: NonNullable<typeof mhw>['data'][number]): BadgeItem => ({
+    // Not keyed on checkdate: it moves every writer run, which made the same
+    // site look like a new alert (and the old one "cleared") each time
+    id: `mhw|${r.sitename}`,
+    title: r.sitename,
+    detail: `Payout ${r.payout} · Net win ${money(r.net_win)}`,
+    sitename: r.sitename,
+    payout: r.payout,
+    net_win: r.net_win,
+    wager: r.wager,
+    checkdate: mhwCheckdate,
+  })
+  // Every flagged site, acknowledged or not (Slack watches these for net win increases)
+  const mhwFlagged = (mhw?.data ?? []).filter(r => {
+    const payout = parseFloat(r.payout)
+    const netWin = r.net_win ?? 0
+    return payout >= MHW_PAYOUT_THRESHOLD && netWin >= MHW_NET_WIN_THRESHOLD
+  })
+  const mhwWatch: BadgeItem[] = mhwFlagged.map(mhwToItem)
+  // The badge counts only the ones not acknowledged
+  const mhwItems: BadgeItem[] = mhwFlagged
+    .filter(r => !mhwAcked.has(`${r.sitename}-${mhwCheckdate}`))
+    .map(mhwToItem)
 
   // Mismatch Reports: unacknowledged variances in the last 7 days
   const comps = reportCompsR.status === 'fulfilled' ? reportCompsR.value : null
@@ -220,7 +229,7 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
     },
     'manual-handicapping-wins': {
       key: 'manual-handicapping-wins', label: 'MH Wins Flagged', color: 'red',
-      count: mhwItems.length, items: mhwItems, error: errorOf(mhwR),
+      count: mhwItems.length, items: mhwItems, watch: mhwWatch, error: errorOf(mhwR),
     },
     'daily-report-mismatch': {
       key: 'daily-report-mismatch', label: 'Mismatches', color: 'amber',
