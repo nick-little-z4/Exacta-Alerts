@@ -38,8 +38,12 @@ const CHANGE_EVENT = 'exacta-tv-mode-change'
 // Tabs left out of TV mode
 const TV_EXCLUDE = ['zero-takeout-monitor']
 
-// Every other tab in the order of lib/tabs.ts (the home page isn't part of the cycle)
-export const TV_PAGES = tabs.filter(t => !TV_EXCLUDE.includes(t.slug)).map(t => `/tabs/${t.slug}`)
+// Every other tab in the order of lib/tabs.ts, then the home page last as the
+// badge summary (last, so starting TV mode from home moves on right away)
+export const TV_PAGES = [
+  ...tabs.filter(t => !TV_EXCLUDE.includes(t.slug)).map(t => `/tabs/${t.slug}`),
+  '/',
+]
 
 function readEnabled(): boolean {
   try {
@@ -100,7 +104,7 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
 
   const pages = TV_PAGES
 
-  // On a page outside the cycle (e.g. home), the next stop is the first tab
+  // On a page outside the cycle, the next stop is the first tab
   const index = pages.indexOf(pathname)
   const next = pages[(index + 1) % pages.length]
   const prev = pages[(index - 1 + pages.length) % pages.length]
