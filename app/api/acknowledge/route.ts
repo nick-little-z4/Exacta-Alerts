@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { notifySlackSoon } from '@/lib/notifySlack'
 
 async function forward(req: NextRequest, method: string) {
   const body = await req.json()
@@ -14,6 +15,8 @@ async function forward(req: NextRequest, method: string) {
     }
   )
   const data = await res.json()
+  // Acknowledging or un-acknowledging changes the alerts, so tell Slack now (notes don't)
+  if (res.ok && method !== 'PATCH') notifySlackSoon()
   return NextResponse.json(data, { status: res.status })
 }
 

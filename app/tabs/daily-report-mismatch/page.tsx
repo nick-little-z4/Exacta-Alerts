@@ -23,12 +23,14 @@ export default async function DailyReportMismatchPage({
 
   let rows: Awaited<ReturnType<typeof fetchReportComps>>['rows'] = []
   let acknowledged: Awaited<ReturnType<typeof fetchReportComps>>['acknowledged'] = []
+  let snapshotAt: string | null = null
   let error: string | null = null
 
   try {
     const data = await fetchReportComps()
     rows = data.rows
     acknowledged = data.acknowledged
+    snapshotAt = data.snapshotAt
   } catch (err) {
     error = String(err)
   }
@@ -55,12 +57,19 @@ export default async function DailyReportMismatchPage({
   const withVariance = filteredRows.filter(r => r.handleVariance !== null && r.handleVariance !== 0).length
   const positiveVariance = filteredRows.filter(r => (r.handleVariance ?? 0) > 0).length
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // When the daily snapshot (report_comps_snapshot Lambda) last pulled from Tableau
+  const timestamp = snapshotAt
+    ? new Date(snapshotAt).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }) + ' CDT'
+    : 'Unknown'
 
   return (
     <div className="min-h-screen bg-[#0a0b14] text-slate-100 px-6 py-10">
@@ -86,9 +95,12 @@ export default async function DailyReportMismatchPage({
             Facility daily reports where handle variance is inconsistent with the source system.
           </p>
           <div className="mt-4 flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-slate-500 text-xs uppercase tracking-widest">Today</span>
-              <span className="text-slate-200 text-xs font-semibold">{today}</span>
+            <div className="flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2 relative group cursor-help">
+              <span className="text-slate-500 text-xs uppercase tracking-widest">Updated</span>
+              <span className="text-slate-200 text-xs font-semibold">{timestamp}</span>
+              <span className="absolute top-full left-0 mt-2 w-64 bg-[#0a0b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 text-left opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case tracking-normal font-normal">
+                When the daily snapshot last pulled this report from Tableau.
+              </span>
             </div>
             <div className="flex items-center gap-2 bg-[#13152a] border border-slate-800 rounded-md px-3 py-2">
               <span className="text-slate-500 text-xs uppercase tracking-widest">Lookback</span>

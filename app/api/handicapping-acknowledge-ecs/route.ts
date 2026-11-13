@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { notifySlackSoon } from '@/lib/notifySlack'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -14,6 +15,8 @@ export async function POST(req: NextRequest) {
     }
   )
   const data = await res.json()
+  // Acknowledging or un-acknowledging changes the alerts, so tell Slack now
+  if (res.ok) notifySlackSoon()
   return NextResponse.json(data, { status: res.status })
 }
 
@@ -31,5 +34,7 @@ export async function DELETE(req: NextRequest) {
     }
   )
   const data = await res.json()
+  // Acknowledging or un-acknowledging changes the alerts, so tell Slack now
+  if (res.ok) notifySlackSoon()
   return NextResponse.json(data, { status: res.status })
 }

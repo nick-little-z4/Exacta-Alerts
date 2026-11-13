@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { notifySlackSoon } from '@/lib/notifySlack'
 
 const BASE_URL = process.env.EXACTA_API_BASE_URL
 const API_KEY = process.env.EXACTA_API_KEY!
@@ -23,6 +24,8 @@ async function handle(req: NextRequest, method: string) {
   try {
     const body = await req.json()
     const data = await callLambda(method, body)
+    // Acknowledging or un-acknowledging changes the alerts, so tell Slack now (notes don't)
+    if (method !== 'PATCH') notifySlackSoon()
     return NextResponse.json(data)
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
