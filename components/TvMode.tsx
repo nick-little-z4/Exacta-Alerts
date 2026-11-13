@@ -32,8 +32,12 @@ function pageLabel(path: string) {
   return tabs.find(t => t.slug === slug)?.title ?? slug
 }
 
+// Length of each half of the cross fade between pages
+const FADE_MS = 400
+
 const STORAGE_KEY = 'exacta-tv-mode'
 const CHANGE_EVENT = 'exacta-tv-mode-change'
+const START_EVENT = 'exacta-tv-mode-start'
 
 // Tabs left out of TV mode
 const TV_EXCLUDE = ['zero-takeout-monitor']
@@ -83,7 +87,9 @@ export function TvModeToggle() {
   const router = useRouter()
   const start = () => {
     writeEnabled(true)
-    router.push(TV_PAGES[0])
+    window.dispatchEvent(new Event(START_EVENT))
+    // Wait for the runner's fade to dark, then switch to the first page
+    setTimeout(() => router.push(TV_PAGES[0]), FADE_MS + 20)
   }
   return (
     <button
@@ -111,11 +117,33 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
 
   const exit = useCallback(() => writeEnabled(false), [])
 
+  // Cross fade between pages: cover, switch, uncover
+  const [covering, setCovering] = useState(false)
+  const go = useCallback((path: string) => {
+    setCovering(true)
+    setTimeout(() => router.push(path), FADE_MS)
+  }, [router])
+  useEffect(() => {
+    // New page is in: fade the cover back out
+    const t = setTimeout(() => setCovering(false), 50)
+    return () => clearTimeout(t)
+  }, [pathname])
+
+  // Entering TV mode fades too: the TV Mode button asks for the cover
+  // (a reload of a TV already in TV mode doesn't, so the page isn't hidden)
+  useEffect(() => {
+    // Small delay so the cover mounts see-through first, then fades to dark
+    const cover = () => { setTimeout(() => setCovering(true), 20) }
+    window.addEventListener(START_EVENT, cover)
+    return () => window.removeEventListener(START_EVENT, cover)
+  }, [])
+
   // /tv/activate sends the TV to /?tvstart=1: turn TV mode on and go to the first page
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('tvstart') === '1') {
       writeEnabled(true)
-      router.replace(TV_PAGES[0])
+      setTimeout(() => setCovering(true), 20)
+      setTimeout(() => router.replace(TV_PAGES[0]), FADE_MS + 20)
     }
   }, [router])
 
@@ -170,7 +198,7 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
       const runSegment = (i: number) => {
         if (cancelled) return
         if (i >= count) {
-          router.push(next)
+          go(next)
           return
         }
         if (subtabs[i]) {
@@ -194,7 +222,7 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
       setSegments(1)
       setSubLabel(null)
     }
-  }, [enabled, seconds, pathname, next, router])
+  }, [enabled, seconds, pathname, next, router, go])
 
   // Any click or key exits. Small delay so the click that started TV mode doesn't stop it.
   useEffect(() => {
@@ -205,8 +233,8 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
     const stop = (e?: Event) => { if (armed && (!e || e.isTrusted)) exit() }
     // Right arrow: next page. Left arrow: previous page. Any other key exits.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); router.push(next); return }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); router.push(prev); return }
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(next); return }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(prev); return }
       stop(e)
     }
     window.addEventListener('click', stop, true)
@@ -216,13 +244,18 @@ export function TvModeRunner({ seconds }: { seconds: number }) {
       window.removeEventListener('click', stop, true)
       window.removeEventListener('keydown', onKey, true)
     }
-  }, [enabled, exit, next, prev, router])
+  }, [enabled, exit, next, prev, go])
 
   if (!enabled) return null
 
-  // Thin progress bar along the bottom, like a slide timer, plus a subtle exit hint
+  // Thin progress bar along the bottom, like a slide timer, plus a subtle exit hint.
   return (
     <>
+      {/* Cross fade: fades to dark, switches page, fades the new page in */}
+      <div
+        className="fixed inset-0 z-[110] pointer-events-none bg-[#0a0b14] transition-opacity ease-in-out"
+        style={{ opacity: covering ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
+      />
       {/* Which slide this is */}
       <div className="fixed bottom-3 left-4 z-[100] pointer-events-none text-xs text-slate-300 bg-[#0a0b14]/80 border border-slate-800 rounded-full px-3 py-1 flex items-center gap-2">
         {index >= 0 && <span className="font-semibold tabular-nums text-orange-400">{index + 1} / {pages.length}</span>}

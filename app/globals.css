@@ -25,6 +25,11 @@ body {
   to { width: 100%; }
 }
 
+@keyframes tv-hint {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+
 html[data-tv] {
   cursor: none;
 }
