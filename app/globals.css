@@ -18,3 +18,22 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ---------- TV mode (components/TvMode.tsx) ---------- */
+@keyframes tv-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+html[data-tv] {
+  cursor: none;
+}
+
+/* Hide page chrome so each page reads like a slide */
+html[data-tv] [data-tv-hide],
+html[data-tv] a[href="/"],
+html[data-tv] details,
+html[data-tv] footer,
+html[data-tv] .cursor-help {
+  display: none !important;
+}
