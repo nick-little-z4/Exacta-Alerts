@@ -11,7 +11,7 @@ interface MarketGroup {
 
 const MARKET_COLORS: Record<string, string> = {
   AL: '#4a6fa5', KY: '#e07b39', VA: '#e8b84b', WY: '#9b59b6',
-  NH: '#27ae60', KS: '#e74c3c', MLT: '#16a085', MP: '#2c3e50',
+  NH: '#27ae60', KS: '#e74c3c', MLT: '#16a085', ZAF: '#2c3e50',
 }
 
 const SVG_W = 960
@@ -38,7 +38,7 @@ const MARKET_COORDS: Record<string, { lat: number; lng: number }> = {
   KS: { lat: 37.8, lng: -97.3 },
   KY: { lat: 37.8, lng: -85.5 },
   MLT: { lat: 35.9, lng: 14.4 },
-  MP: { lat: -26.5, lng: 29.9 },
+  ZAF: { lat: -29.0, lng: 26.5 },
   NH: { lat: 43.2, lng: -71.5 },
   VA: { lat: 37.4, lng: -77.5 },
   WY: { lat: 42.9, lng: -106.3 },

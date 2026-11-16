@@ -10,7 +10,7 @@
  */
 
 export const TV_COOKIE = 'exacta_tv_pass'
-export const TV_PASS_DAYS = 90
+export const TV_PASS_DAYS = 365
 
 const enc = new TextEncoder()
 

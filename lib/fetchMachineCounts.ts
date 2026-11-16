@@ -7,7 +7,15 @@ const CACHE_SECONDS = 120
 const API_VERSION = '3.23'
 
 export interface MachineRow {
+  /** Market used for grouping. South Africa is one market (ZAF) with states MP and EC. */
   market: string
+  /** State or region from Tableau (e.g. MP, EC, KY) */
+  state: string
+  /** True when the site has no data on the latest day (e.g. closed); its count is then 0 */
+  closed?: boolean
+  /** The site's count on its last day with data, and that day (YYYY-MM-DD) */
+  lastOpenCount?: number | null
+  lastOpenDate?: string | null
   enterprise: string
   facility: string
   site: string
@@ -183,7 +191,7 @@ export async function fetchMachineCountsUncached(): Promise<MachineCountsData> {
   // Columns (by name): Country, Date, Enterprise, Location, Market, Machine Days
   const headers = parseCSVLine(allLines[0])
   const idx = (name: string) => headers.indexOf(name)
-  const iDate = idx('Date'), iEnt = idx('Enterprise'), iLoc = idx('Location')
+  const iDate = idx('Date'), iEnt = idx('Enterprise'), iLoc = idx('Location'), iCountry = idx('Country')
   const iMkt = idx('Market'), iVal = idx('Machine Days')
 
   // Keep each site's most recent day. Skip Tableau total rows (Date = "All").
@@ -200,7 +208,11 @@ export async function fetchMachineCountsUncached(): Promise<MachineCountsData> {
     const time = new Date(dateStr).getTime()
     if (isNaN(time)) continue
 
-    const market = c[iMkt] || SITE_TO_MARKET[site]
+    // Tableau's Market column holds the state for South Africa (MP, EC), so group
+    // those under one ZAF market and keep the state separately
+    const state = c[iMkt] || SITE_TO_MARKET[site] || ''
+    const country = (c[iCountry] ?? '').toUpperCase()
+    const market = ['ZAF', 'ZA', 'SOUTH AFRICA'].includes(country) ? 'ZAF' : state
     if (!market) continue
 
     // Keep the exact value; pages round only the totals they display
@@ -213,7 +225,7 @@ export async function fetchMachineCountsUncached(): Promise<MachineCountsData> {
     if (!existing || time > existing.time) {
       latest.set(site, {
         time,
-        row: { enterprise, facility: site, site, market, counts: [count] },
+        row: { enterprise, facility: site, site, market, state, counts: [count] },
       })
     } else if (time === existing.time && count !== null) {
       existing.row.counts[0] = (existing.row.counts[0] ?? 0) + count

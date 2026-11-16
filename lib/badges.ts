@@ -11,7 +11,7 @@
 import { fetchLowPools } from '@/lib/fetchLowPools'
 import { fetchManualHandicappingWins } from '@/lib/fetchManualHandicappingWins'
 import { fetchAcknowledgedHandicappingWinsNew as fetchAcknowledgedHandicappingWins } from '@/lib/fetchAcknowledgedHandicappingWinsNew'
-import { fetchReportComps } from '@/lib/fetchReportComps'
+import { fetchReportComps, mismatchKind, MISMATCH_LABELS } from '@/lib/fetchReportComps'
 import { fetchNPrizes } from '@/lib/fetchNPrizes'
 import { fetchNPrizesAcknowledged, nPrizesAckKey } from '@/lib/fetchNPrizesAcknowledged'
 import { fetchBetTypePvalues } from '@/lib/fetchBetTypePvalues'
@@ -160,7 +160,8 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
   cutoff.setDate(cutoff.getDate() - MISMATCH_LOOKBACK_DAYS)
   const mismatchItems: BadgeItem[] = (comps?.rows ?? [])
     .filter(r => {
-      if (!r.handleVariance || r.handleVariance === 0) return false
+      // Variances and missing reports (same rule as the Mismatch page)
+      if (mismatchKind(r) === null) return false
       if (compAcked.has(r.ackRowId)) return false
       const d = new Date(r.date)
       return isNaN(d.getTime()) || d.getTime() >= cutoff.getTime()
@@ -168,7 +169,12 @@ export async function getBadgeSummary(): Promise<BadgeSummary> {
     .map(r => ({
       id: `mismatch|${r.ackRowId}`,
       title: `${r.date} · ${r.market} · ${r.enterprise} · ${r.system}`,
-      detail: `${r.gameType} · Handle variance ${money(r.handleVariance)}`,
+      detail: (() => {
+        const kind = mismatchKind(r)
+        return kind === 'variance'
+          ? `${r.gameType} · Handle variance ${money(r.handleVariance)}`
+          : `${r.gameType} · ${MISMATCH_LABELS[kind!]} (DW ${money(r.dwHandle)}, System ${money(r.sysHandle)})`
+      })(),
       ackRowId: r.ackRowId,
       date: r.date,
       market: r.market,

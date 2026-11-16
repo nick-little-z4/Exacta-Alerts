@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { fetchReportComps } from '@/lib/fetchReportComps'
+import { fetchReportComps, mismatchKind } from '@/lib/fetchReportComps'
 import DateRangeFilter from './DateRangeFilter'
 import ReportCompsClient from './ReportCompsClient'
 
@@ -54,7 +54,8 @@ export default async function DailyReportMismatchPage({
     return bDate.getTime() - aDate.getTime()
   })
 
-  const withVariance = filteredRows.filter(r => r.handleVariance !== null && r.handleVariance !== 0).length
+  const withVariance = filteredRows.filter(r => mismatchKind(r) !== null).length
+  const missingReports = filteredRows.filter(r => { const k = mismatchKind(r); return k === 'sys_missing' || k === 'dw_missing' }).length
   const positiveVariance = filteredRows.filter(r => (r.handleVariance ?? 0) > 0).length
 
   // When the daily snapshot (report_comps_snapshot Lambda) last pulled from Tableau
@@ -117,9 +118,11 @@ export default async function DailyReportMismatchPage({
           <>
             <div className="grid grid-cols-2 gap-4 mb-10">
               <div className="bg-[#13152a] border border-amber-900/50 rounded-lg p-5">
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">With Variance</div>
+                <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Mismatches</div>
                 <div className="text-3xl font-bold text-amber-400">{withVariance}</div>
-                <div className="text-xs text-slate-500 mt-1">Mismatches in period</div>
+                <div className="text-xs text-slate-500 mt-1">
+                  In period{missingReports > 0 ? ` · ${missingReports} with a missing report` : ''}
+                </div>
               </div>
               <div className="bg-[#13152a] border border-rose-900/50 rounded-lg p-5">
                 <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Positive Variance</div>

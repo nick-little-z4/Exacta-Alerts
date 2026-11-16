@@ -44,8 +44,12 @@ const SITE_COORDS: Record<string, { lat: number; lng: number }> = {
   '6171': { lat: 35.9080, lng: 14.4750 },
   '1173': { lat: 35.8997, lng: 14.5148 },
   '6417': { lat: 36.0444, lng: 14.2395 },
-  // MP
-  'MPG-ERM': { lat: -26.5230, lng: 29.9885 },
+  '7419': { lat: 35.9136, lng: 14.4436 },       // Naxxar
+  // ZAF (South Africa): MP
+  'MPG-ERM': { lat: -26.5230, lng: 29.9885 },   // Ermelo
+  // ZAF (South Africa): EC
+  'ECT-NGC': { lat: -31.6720, lng: 28.0000 },   // Ngcobo
+  'BLD-GPE': { lat: -33.9800, lng: 25.5900 },   // Walmer, Gqeberha
   // NH
   CWY: { lat: 43.9770, lng: -71.1270 },
   DVR: { lat: 43.1979, lng: -70.8737 },
@@ -159,7 +163,8 @@ export default async function ExactaMapPage() {
         hour12: true,
       }) + ' CDT'
     : 'Unknown'
-  const totalMachines = rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0)
+  // Add exact values first, then round once (matches Tableau)
+  const totalMachines = Math.round(rows.reduce((sum, r) => sum + (r.counts[r.counts.length - 1] ?? 0), 0))
   const totalMarkets = new Set(rows.map(r => r.market).filter(Boolean)).size
 
   try {
@@ -188,10 +193,15 @@ export default async function ExactaMapPage() {
           hours: f.hours ?? null,
           siteContact: f.siteContact ?? null,
           confluenceUrl: f.confluenceUrl ?? null,
-          market: f.state,
+          // Market from Machine Counts (South Africa's MP and EC sites are one ZAF market)
+          market: row.market,
           lat: SITE_COORDS[row.site].lat,
           lng: SITE_COORDS[row.site].lng,
-          machineCount: row.counts[row.counts.length - 1] ?? null,
+          machineCount: row.counts[row.counts.length - 1] != null ? Math.round(row.counts[row.counts.length - 1] as number) : null,
+          // Closed on the latest day (counts as 0, like Tableau); last open day kept for the popup
+          closed: row.closed ?? false,
+          lastOpenCount: row.lastOpenCount != null ? Math.round(row.lastOpenCount) : null,
+          lastOpenDate: row.lastOpenDate ?? null,
         }
       })
 

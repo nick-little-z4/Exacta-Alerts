@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ReportCompRow, AcknowledgedReportComp } from '@/lib/fetchReportComps'
+import { ReportCompRow, AcknowledgedReportComp, mismatchKind, MISMATCH_LABELS } from '@/lib/fetchReportComps'
 
 function fmtHandle(val: number | null) {
   if (val === null) return '-'
@@ -115,7 +115,8 @@ export default function ReportCompsClient({
     }
   }
 
-  const displayRows = rows.filter(r => r.handleVariance !== null && r.handleVariance !== 0)
+  // Variances plus rows where one side of the report is missing
+  const displayRows = rows.filter(r => mismatchKind(r) !== null)
 
   return (
     <>
@@ -141,6 +142,7 @@ export default function ReportCompsClient({
               <li><span className="font-semibold">DW Handle</span>: the amount bet according to our data warehouse.</li>
               <li><span className="font-semibold">Sys Handle</span>: the amount bet according to the facility&apos;s system.</li>
               <li><span className="font-semibold">Handle Variance</span>: the difference between the two. Anything other than zero is a mismatch.</li>
+              <li><span className="font-semibold text-rose-300">System report missing</span> / <span className="font-semibold text-rose-300">DW data missing</span>: one side has handle and the other has nothing. These count as mismatches too.</li>
               <li><span className="font-semibold">Market / Enterprise / System / Game Type</span>: where the report came from.</li>
             </ul>
           </div>
@@ -202,7 +204,17 @@ export default function ReportCompsClient({
                     <td className="text-right px-4 py-2.5 tabular-nums text-slate-300">{fmtHandle(row.dwHandle)}</td>
                     <td className="text-right px-4 py-2.5 tabular-nums text-slate-300">{fmtHandle(row.sysHandle)}</td>
                     <td className="text-right px-4 py-2.5 tabular-nums">
-                      {fmtVariance(row.handleVariance)}
+                      {(() => {
+                        const kind = mismatchKind(row)
+                        if (kind === 'sys_missing' || kind === 'dw_missing') {
+                          return (
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-rose-900/50 text-rose-300 border border-rose-800/60">
+                              {MISMATCH_LABELS[kind]}
+                            </span>
+                          )
+                        }
+                        return fmtVariance(row.handleVariance)
+                      })()}
                     </td>
                     <td className="px-4 py-2.5 align-top min-w-[220px]">
                       {editingKey === row.ackRowId ? (

@@ -16,6 +16,29 @@ export interface ReportCompRow {
   dwHandle: number | null
 }
 
+/**
+ * What kind of mismatch a row is, or null when it matches.
+ *  - variance:    DW and system handle differ
+ *  - sys_missing: DW has handle but the system report is missing
+ *  - dw_missing:  the system report has handle but DW has none
+ * Rows with neither side reported are left out (nothing to compare).
+ * Shared by the Mismatch page, the home badge, TV mode and Slack.
+ */
+export type MismatchKind = 'variance' | 'sys_missing' | 'dw_missing'
+
+export function mismatchKind(r: Pick<ReportCompRow, 'handleVariance' | 'sysHandle' | 'dwHandle'>): MismatchKind | null {
+  if (r.handleVariance !== null && r.handleVariance !== 0) return 'variance'
+  if (r.dwHandle !== null && r.dwHandle !== 0 && r.sysHandle === null) return 'sys_missing'
+  if (r.sysHandle !== null && r.sysHandle !== 0 && r.dwHandle === null) return 'dw_missing'
+  return null
+}
+
+export const MISMATCH_LABELS: Record<MismatchKind, string> = {
+  variance: 'Handle variance',
+  sys_missing: 'System report missing',
+  dw_missing: 'DW data missing',
+}
+
 export interface AcknowledgedReportComp {
   ack_row_id: string
   acknowledged_at?: string
