@@ -37,7 +37,17 @@ export default async function Dashboard() {
               <div className="w-1 h-8 rounded-full bg-gradient-to-b from-orange-400 to-pink-500" />
               <h1 className="text-2xl font-bold text-white tracking-tight">Exacta Alerts</h1>
             </div>
-            <TvModeToggle />
+            <div className="flex items-center gap-2">
+              <TvModeToggle />
+              {/* Ends the 7-day login session (hidden in TV mode) */}
+              <a
+                href="/auth/logout"
+                data-tv-hide
+                className="text-xs px-3 py-1.5 rounded-md border border-slate-700 text-slate-400 hover:border-rose-500 hover:text-rose-300 transition-colors"
+              >
+                Sign out
+              </a>
+            </div>
           </div>
         </header>
 

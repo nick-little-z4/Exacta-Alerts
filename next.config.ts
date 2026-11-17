@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
     EXACTA_API_KEY: process.env.EXACTA_API_KEY,
     BADGES_API_KEY: process.env.BADGES_API_KEY,
     TV_ACCESS_KEY: process.env.TV_ACCESS_KEY,
+    COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
+    COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID,
+    APP_URL: process.env.APP_URL,
+    AUTH_SESSION_SECRET: process.env.AUTH_SESSION_SECRET,
+    AUTH_SESSION_DAYS: process.env.AUTH_SESSION_DAYS ?? '7',
   },
 }
 
