@@ -181,7 +181,7 @@ export default async function MachineCountsPage() {
         {/* Stat Cards */}
         <div className="grid grid-cols-2 gap-4 mb-10">
           {[
-            { label: 'Total Machines', value: totalMachines.toLocaleString() },
+            { label: 'Total Active Machines', value: totalMachines.toLocaleString() },
             { label: 'Markets', value: totalMarkets },
           ].map(card => (
             <div key={card.label} className="bg-[#13152a] border border-slate-800 rounded-lg p-5">

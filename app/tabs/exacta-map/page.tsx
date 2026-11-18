@@ -274,7 +274,7 @@ export default async function ExactaMapPage() {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-[#13152a] border border-slate-800 rounded-lg p-5">
-            <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Machines</div>
+            <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Total Active Machines</div>
             <div className="text-3xl font-bold text-white">{totalMachines.toLocaleString()}</div>
             <div className="text-xs text-slate-500 mt-1">Current count</div>
           </div>
