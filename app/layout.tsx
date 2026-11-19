@@ -4,7 +4,6 @@ import { TvModeRunner } from '@/components/TvMode'
 
 export const metadata: Metadata = {
   title: 'Exacta Alerts',
-  description: 'Real-time health metrics for the gaming system',
 }
 
 // Seconds each page shows in TV mode. Set TV_SECONDS_PER_PAGE in Amplify to change it.
